@@ -1,0 +1,26 @@
+{
+  "name": "vtubestudio",
+  "version": "0.1.0",
+  "description": "A TypeScript implementation of the VTube Studio WebSocket API.",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hawkbat/CheersBot.git"
+  },
+  "keywords": [
+    "vtstudio",
+    "vtuber",
+    "vtubestudio"
+  ],
+  "author": "Hawkbar",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Hawkbat/CheersBot/issues"
+  },
+  "homepage": "https://github.com/Hawkbat/CheersBot#readme"
+}

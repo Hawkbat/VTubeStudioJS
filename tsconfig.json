@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+        "module": "ES6",
+        "target": "ES6",
+        "outDir": "lib",
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "composite": true,
+        "strict": true,
+        "moduleResolution": "node",
+        "rootDir": "src",
+        "baseUrl": ".",
+        "lib": ["ES6"],
+        "stripInternal": true,
+    },
+    "include": [
+        "./src/**/*.ts",
+        "./src/*/**.tsx",
+    ],
+    "exclude": [
+        "node_modules"
+    ],
+}
