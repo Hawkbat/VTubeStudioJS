@@ -37,6 +37,17 @@ interface StatisticsEndpoint extends ApiEndpoint<'Statistics', {
     startedWithSteam: boolean
 }> { }
 
+interface VTSFolderInfoEndpoint extends ApiEndpoint<'VTSFolderInfo', {
+
+}, {
+    baseFolder: string
+    models: string
+    backgrounds: string
+    items: string
+    config: string
+    logs: string
+}> { }
+
 interface CurrentModelEndpoint extends ApiEndpoint<'CurrentModel', {
 
 }, {
@@ -75,7 +86,7 @@ interface ModelLoadEndpoint extends ApiEndpoint<'ModelLoad', {
 }> { }
 
 interface HotkeysInCurrentModelEndpoint extends ApiEndpoint<'HotkeysInCurrentModel', {
-
+    modelID?: string
 }, {
     modelLoaded: boolean
     modelName: string
@@ -94,9 +105,12 @@ interface HotkeyTriggerEndpoint extends ApiEndpoint<'HotkeyTrigger', {
     hotkeyID: string
 }> { }
 
-interface ParameterListEndpoint extends ApiEndpoint<'ParameterList', {
+interface InputParameterListEndpoint extends ApiEndpoint<'InputParameterList', {
 
 }, {
+    modelLoaded: boolean
+    modelName: string
+    modelID: string
     customParameters: VTSParameter[]
     defaultParameters: VTSParameter[]
 }> { }
@@ -146,12 +160,13 @@ export class ApiClient {
     authenticationToken = createClientCall<AuthenticationTokenEndpoint>(this.bus, 'AuthenticationToken')
     authentication = createClientCall<AuthenticationEndpoint>(this.bus, 'Authentication')
     statistics = createClientCall<StatisticsEndpoint>(this.bus, 'Statistics')
+    vtsFolderInfo = createClientCall<VTSFolderInfoEndpoint>(this.bus, 'VTSFolderInfo')
     currentModel = createClientCall<CurrentModelEndpoint>(this.bus, 'CurrentModel')
     availableModels = createClientCall<AvailableModelsEndpoint>(this.bus, 'AvailableModels')
     modelLoad = createClientCall<ModelLoadEndpoint>(this.bus, 'ModelLoad')
     hotkeysInCurrentModel = createClientCall<HotkeysInCurrentModelEndpoint>(this.bus, 'HotkeysInCurrentModel')
     hotkeyTrigger = createClientCall<HotkeyTriggerEndpoint>(this.bus, 'HotkeyTrigger')
-    parameterList = createClientCall<ParameterListEndpoint>(this.bus, 'ParameterList')
+    inputParameterList = createClientCall<InputParameterListEndpoint>(this.bus, 'InputParameterList')
     parameterValue = createClientCall<ParameterValueEndpoint>(this.bus, 'ParameterValue')
     live2DParameterList = createClientCall<Live2DParameterListEndpoint>(this.bus, 'Live2DParameterList')
     parameterCreation = createClientCall<ParameterCreationEndpoint>(this.bus, 'ParameterCreation')
@@ -165,12 +180,13 @@ export class MockApiServer {
         bus.on(createServerHandler<AuthenticationTokenEndpoint>(bus, 'AuthenticationToken', async () => ({ authenticationToken: 'MOCK_VTUBE_STUDIO_API' })))
         bus.on(createServerHandler<AuthenticationEndpoint>(bus, 'Authentication', async () => ({ authenticated: true, reason: '' })))
         bus.on(createServerHandler<StatisticsEndpoint>(bus, 'Statistics', async () => ({ vTubeStudioVersion: '1.9.0', allowedPlugins: 1, connectedPlugins: 1, framerate: 30, uptime: 0, startedWithSteam: false })))
+        bus.on(createServerHandler<VTSFolderInfoEndpoint>(bus, 'VTSFolderInfo', async () => ({ baseFolder: '', models: '', backgrounds: '', items: '', config: '', logs: '' })))
         bus.on(createServerHandler<CurrentModelEndpoint>(bus, 'CurrentModel', async () => ({ modelLoaded: true, modelID: 'FAKE_MODEL', modelName: 'Fake Model', vtsModelPath: '', vtsModelIconPath: '', live2DModelPath: '', modelLoadTime: 0, timeSinceModelLoaded: 0, numberOfLive2DArtmeshes: 1, numberOfLive2DParameters: 0, numberOfTextures: 1, textureResolution: 1024, hasPhysicsFile: false })))
         bus.on(createServerHandler<AvailableModelsEndpoint>(bus, 'AvailableModels', async () => ({ numberOfModels: 2, availableModels: [{ modelLoaded: true, modelID: 'FAKE_MODEL', modelName: 'Fake Model', vtsModelPath: '', vtsModelIconPath: '' }, { modelLoaded: false, modelID: 'TEST_MODEL', modelName: 'Test Model', vtsModelPath: '', vtsModelIconPath: '' }] })))
         bus.on(createServerHandler<ModelLoadEndpoint>(bus, 'ModelLoad', async ({ modelID }) => ({ modelID })))
         bus.on(createServerHandler<HotkeysInCurrentModelEndpoint>(bus, 'HotkeysInCurrentModel', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', availableHotkeys: [] })))
         bus.on(createServerHandler<HotkeyTriggerEndpoint>(bus, 'HotkeyTrigger', async ({ hotkeyID }) => ({ hotkeyID })))
-        bus.on(createServerHandler<ParameterListEndpoint>(bus, 'ParameterList', async () => ({ customParameters: [], defaultParameters: [] })))
+        bus.on(createServerHandler<InputParameterListEndpoint>(bus, 'InputParameterList', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', customParameters: [], defaultParameters: [] })))
         bus.on(createServerHandler<ParameterValueEndpoint>(bus, 'ParameterValue', async () => ({ name: 'Param', addedBy: '', min: 0, max: 0, value: 0, defaultValue: 0 })))
         bus.on(createServerHandler<Live2DParameterListEndpoint>(bus, 'Live2DParameterList', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', parameters: [] })))
         bus.on(createServerHandler<ParameterCreationEndpoint>(bus, 'ParameterCreation', async ({ parameterName }) => ({ parameterName })))
