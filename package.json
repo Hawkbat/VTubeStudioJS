@@ -6,7 +6,12 @@
   "types": "lib/index.d.ts",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepare": "npm run clean && npm run build",
+    "build": "tsc",
+    "clean": "rimraf lib",
+    "publish-patch": "npm version patch && git push && npm publish",
+    "publish-minor": "npm version minor && git push && npm publish",
+    "publish-major": "npm version major && git push && npm publish"
   },
   "repository": {
     "type": "git",
@@ -24,6 +29,11 @@
   },
   "homepage": "https://github.com/Hawkbat/VTubeStudioJS#readme",
   "devDependencies": {
+    "rimraf": "^3.0.2",
     "typescript": "^4.3.5"
+  },
+  "vtubestudio": {
+    "version": "1.9.6",
+    "apiVersion": "1.0"
   }
 }
