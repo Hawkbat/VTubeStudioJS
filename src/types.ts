@@ -80,7 +80,6 @@ export interface VTSParameter extends BaseParameter {
     addedBy: string
 }
 
-/** @internal */
 export interface ApiMessage<Type extends string, Data extends object> {
     apiName: 'VTubeStudioPublicAPI'
     apiVersion: `${number}.${number}`
@@ -89,15 +88,12 @@ export interface ApiMessage<Type extends string, Data extends object> {
     data: Data
 }
 
-/** @internal */
 export interface ApiRequest<Type extends string, Data extends object> extends ApiMessage<`${Type}Request`, Data> { }
 
-/** @internal */
 export interface ApiResponse<Type extends string, Data extends object> extends ApiMessage<`${Type}Response`, Data> {
     timestamp: number
 }
 
-/** @internal */
 export interface ApiError extends ApiMessage<'APIError', {
     errorID: ErrorCode
     message: string
@@ -105,7 +101,6 @@ export interface ApiError extends ApiMessage<'APIError', {
     timestamp: number
 }
 
-/** @internal */
 export interface ApiEndpoint<Type extends string, Request extends object, Response extends object> {
     Type: Type
     Request: ApiRequest<Type, Request>

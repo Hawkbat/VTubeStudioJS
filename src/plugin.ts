@@ -1,4 +1,4 @@
-import { ApiClient } from './endpoints'
+import type { ApiClient } from './endpoints'
 import { VTubeStudioError, ErrorCode } from './types'
 
 class Parameter {
@@ -21,7 +21,7 @@ class Parameter {
 }
 
 class CustomParameter extends Parameter {
-    constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly name: string, public value: number, public min: number, public max: number, public defaultValue: number, public readonly addedBy: string) { super(vts, model, name, value, min, max, defaultValue) }
+    constructor(vts: Plugin, model: CurrentModel, name: string, value: number, min: number, max: number, defaultValue: number, public readonly addedBy: string) { super(vts, model, name, value, min, max, defaultValue) }
 
     async update({ min, max, defaultValue }: Partial<{ min: number, max: number, defaultValue: number }>): Promise<Parameter> {
         await this.vts.apiClient.parameterCreation({ parameterName: this.name, createdBy: this.addedBy, min: min ?? this.min, max: max ?? this.max, defaultValue: defaultValue ?? this.defaultValue })
@@ -73,12 +73,12 @@ class CurrentModel {
     }
 
     async customParameters(): Promise<Parameter[]> {
-        const { customParameters } = await this.vts.apiClient.parameterList()
+        const { customParameters } = await this.vts.apiClient.inputParameterList()
         return customParameters.map(p => new CustomParameter(this.vts, this, p.name, p.value, p.min, p.max, p.defaultValue, p.addedBy))
     }
 
     async defaultParameters(): Promise<Parameter[]> {
-        const { defaultParameters } = await this.vts.apiClient.parameterList()
+        const { defaultParameters } = await this.vts.apiClient.inputParameterList()
         return defaultParameters.map(p => new Parameter(this.vts, this, p.name, p.value, p.min, p.max, p.defaultValue))
     }
 

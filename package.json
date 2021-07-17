@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Hawkbat/CheersBot.git"
+    "url": "git+https://github.com/Hawkbat/VTubeStudioJS.git"
   },
   "keywords": [
     "vtstudio",
@@ -20,7 +20,10 @@
   "author": "Hawkbar",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Hawkbat/CheersBot/issues"
+    "url": "https://github.com/Hawkbat/VTubeStudioJS/issues"
   },
-  "homepage": "https://github.com/Hawkbat/CheersBot#readme"
+  "homepage": "https://github.com/Hawkbat/VTubeStudioJS#readme",
+  "devDependencies": {
+    "typescript": "^4.3.5"
+  }
 }

@@ -11,8 +11,22 @@
         "moduleResolution": "node",
         "rootDir": "src",
         "baseUrl": ".",
-        "lib": ["ES6"],
+        "lib": [
+            "ES6"
+        ],
         "stripInternal": true,
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitOverride": true,
+        "noImplicitReturns": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "noUncheckedIndexedAccess": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "importsNotUsedAsValues": "error",
+        "removeComments": true,
+        "forceConsistentCasingInFileNames": true,
     },
     "include": [
         "./src/**/*.ts",

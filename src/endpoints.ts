@@ -1,5 +1,5 @@
 import { createClientCall, createServerHandler, MessageBus } from './api'
-import { ApiEndpoint, VTSParameter, Live2DParameter, HotkeyType } from './types'
+import type { ApiEndpoint, VTSParameter, Live2DParameter, HotkeyType } from './types'
 
 interface APIStateEndpoint extends ApiEndpoint<'APIState', {
 
