@@ -31,9 +31,5 @@
   "devDependencies": {
     "rimraf": "^3.0.2",
     "typescript": "^4.3.5"
-  },
-  "vtubestudio": {
-    "version": "1.9.6",
-    "apiVersion": "1.0"
   }
 }

@@ -2,8 +2,6 @@
 
 ![npm](https://img.shields.io/npm/v/vtubestudio)
 ![npm bundle size](https://img.shields.io/bundlephobia/min/vtubestudio)
-![VTube Studio Version](https://img.shields.io/github/package-json/vtubestudio.version/Hawkbat/VTubeStudioJS)
-![VTube Studio API Version](https://img.shields.io/github/package-json/vtubestudio.apiVersion/Hawkbat/VTubeStudioJS)
 ![GitHub](https://img.shields.io/github/license/Hawkbat/VTubeStudioJS)
 
 An implementation of the WebSocket-based VTube Studio API for Node and browser JavaScript.
