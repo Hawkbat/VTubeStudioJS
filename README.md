@@ -91,7 +91,7 @@ console.log("Loaded model in", loadedModel.modelLoadTime, "milliseconds");
 There is also a barebones mock API server implementation provided, if you would like to write tests against your plugin implementation instead of a live version of VTube Studio:
 
 ```javascript
-import { MockApiServer, EchoBus } from "vtubestudio";
+import { EchoBus, ApiClient, MockApiServer } from "vtubestudio";
 
 const { clientBus, serverBus } = EchoBus.createLinkedPair();
 const client = new ApiClient(clientBus);
