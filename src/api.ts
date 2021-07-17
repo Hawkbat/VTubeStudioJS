@@ -1,7 +1,7 @@
 import { generateID } from './utils'
-import { ApiEndpoint, ApiMessage, ApiError, VTubeStudioError } from './types'
+import { IApiEndpoint, IApiMessage, IApiError, VTubeStudioError } from './types'
 
-type EndpointCall<T extends ApiEndpoint<any, any, any>> = T extends ApiEndpoint<infer _, infer Request, infer Response> ?
+type EndpointCall<T extends IApiEndpoint<any, any, any>> = T extends IApiEndpoint<infer _, infer Request, infer Response> ?
     ({} extends Request ?
         ({} extends Response ?
             () => Promise<void> :
@@ -11,15 +11,9 @@ type EndpointCall<T extends ApiEndpoint<any, any, any>> = T extends ApiEndpoint<
             (data: Request) => Promise<Response>)) :
     never
 
-export type MessageHandler<T extends ApiMessage<any, any> = ApiMessage<any, any>> = (msg: T) => void
+export type MessageHandler<T extends IApiMessage<any, any> = IApiMessage<any, any>> = (msg: T) => void
 
-export interface MessageBus {
-    send: <T extends ApiMessage<any, any>>(msg: T) => void
-    on: (handler: MessageHandler) => void
-    off: (handler: MessageHandler) => void
-}
-
-function makeRequestMsg<T extends ApiEndpoint<any, any, any>>(type: T['Type'], requestID: string, data: T['Request']['data']): T['Request'] {
+function makeRequestMsg<T extends IApiEndpoint<any, any, any>>(type: T['Type'], requestID: string, data: T['Request']['data']): T['Request'] {
     return {
         apiName: 'VTubeStudioPublicAPI',
         apiVersion: '1.0',
@@ -29,7 +23,7 @@ function makeRequestMsg<T extends ApiEndpoint<any, any, any>>(type: T['Type'], r
     }
 }
 
-function makeResponseMsg<T extends ApiEndpoint<any, any, any>>(type: T['Type'], requestID: string, data: T['Response']['data']): T['Response'] {
+function makeResponseMsg<T extends IApiEndpoint<any, any, any>>(type: T['Type'], requestID: string, data: T['Response']['data']): T['Response'] {
     return {
         apiName: 'VTubeStudioPublicAPI',
         apiVersion: '1.0',
@@ -40,7 +34,7 @@ function makeResponseMsg<T extends ApiEndpoint<any, any, any>>(type: T['Type'], 
     }
 }
 
-function makeErrorMsg(requestID: string, data: ApiError['data']): ApiError {
+function makeErrorMsg(requestID: string, data: IApiError['data']): IApiError {
     return {
         apiName: 'VTubeStudioPublicAPI',
         apiVersion: '1.0',
@@ -51,23 +45,23 @@ function makeErrorMsg(requestID: string, data: ApiError['data']): ApiError {
     }
 }
 
-function msgIsRequest<T extends ApiEndpoint<any, any, any>>(msg: ApiMessage<any, any>, type: T['Type']): msg is T['Request'] {
+function msgIsRequest<T extends IApiEndpoint<any, any, any>>(msg: IApiMessage<any, any>, type: T['Type']): msg is T['Request'] {
     return msg.messageType === `${type}Request`
 }
 
-function msgIsResponse<T extends ApiEndpoint<any, any, any>>(msg: ApiMessage<any, any>, type: T['Type']): msg is T['Response'] {
+function msgIsResponse<T extends IApiEndpoint<any, any, any>>(msg: IApiMessage<any, any>, type: T['Type']): msg is T['Response'] {
     return msg.messageType === `${type}Response`
 }
 
-function msgIsError(msg: ApiMessage<any, any>): msg is ApiError {
+function msgIsError(msg: IApiMessage<any, any>): msg is IApiError {
     return msg.messageType === 'APIError'
 }
 
 /** @internal */
-export function createClientCall<T extends ApiEndpoint<any, any, any>>(bus: MessageBus, type: T['Type']): EndpointCall<T> {
+export function createClientCall<T extends IApiEndpoint<any, any, any>>(bus: IMessageBus, type: T['Type']): EndpointCall<T> {
     return ((data: T['Request']['data']) => new Promise<T['Response']['data']>((resolve, reject) => {
         const requestID = generateID(16)
-        const handler = (msg: ApiMessage<any, any>) => {
+        const handler = (msg: IApiMessage<any, any>) => {
             if (msg.requestID === requestID) {
                 bus.off(handler)
                 clearTimeout(timeout)
@@ -87,7 +81,7 @@ export function createClientCall<T extends ApiEndpoint<any, any, any>>(bus: Mess
 }
 
 /** @internal */
-export function createServerHandler<T extends ApiEndpoint<any, any, any>>(bus: MessageBus, type: T['Type'], handler: EndpointCall<T>): MessageHandler {
+export function createServerHandler<T extends IApiEndpoint<any, any, any>>(bus: IMessageBus, type: T['Type'], handler: EndpointCall<T>): MessageHandler {
     return async msg => {
         if (msgIsRequest<T>(msg, type)) {
             try {
@@ -104,24 +98,69 @@ export function createServerHandler<T extends ApiEndpoint<any, any, any>>(bus: M
     }
 }
 
+export interface IMessageBus {
+    send: <T extends IApiMessage<any, any>>(msg: T) => void
+    receive: <T extends IApiMessage<any, any>>(msg: T) => void
+    on: (handler: MessageHandler) => void
+    off: (handler: MessageHandler) => void
+}
+
 interface IWebSocketLike {
     send(data: string): void
     addEventListener(type: 'message', handler: (event: { data: any }) => void): void
 }
 
-export function createWebsocketBus(ws: IWebSocketLike): MessageBus {
-    const handlers: MessageHandler[] = []
+abstract class MessageBusBase implements IMessageBus {
+    protected handlers: MessageHandler[] = []
 
-    const bus: MessageBus = {
-        on: handler => handlers.push(handler),
-        off: handler => handlers.splice(handlers.findIndex(h => h === handler), 1),
-        send: msg => ws.send(JSON.stringify(msg)),
+    on(handler: MessageHandler<IApiMessage<any, any>>): void {
+        this.handlers.push(handler)
     }
 
-    ws.addEventListener('message', e => {
-        const msg = JSON.parse(e.data)
-        for (const handler of [...handlers]) handler(msg)
-    })
+    off(handler: MessageHandler<IApiMessage<any, any>>): void {
+        this.handlers.splice(this.handlers.findIndex(h => h === handler), 1)
+    }
 
-    return bus
+    receive<T extends IApiMessage<any, any>>(msg: T): void {
+        for (const handler of [...this.handlers]) handler(msg)
+    }
+
+    abstract send<T extends IApiMessage<any, any>>(msg: T): void
+}
+
+export class WebSocketBus extends MessageBusBase {
+
+    constructor(private webSocket: IWebSocketLike) {
+        super()
+        webSocket.addEventListener('message', e => {
+            const msg = JSON.parse(e.data)
+            this.receive(msg)
+        })
+    }
+
+    send<T extends IApiMessage<any, any>>(msg: T): void {
+        this.webSocket.send(JSON.stringify(msg))
+    }
+}
+
+export class EchoBus extends MessageBusBase {
+    private other!: IMessageBus
+
+    static createLinkedPair(): { clientBus: EchoBus, serverBus: EchoBus } {
+        const clientBus = new EchoBus()
+        const serverBus = clientBus.other as EchoBus
+        return { clientBus, serverBus }
+    }
+
+    constructor(otherBus?: IMessageBus) {
+        super()
+        if (otherBus)
+            this.other = otherBus
+        else
+            this.other = new EchoBus(this)
+    }
+
+    send<T extends IApiMessage<any, any>>(msg: T): void {
+        this.other.receive(msg)
+    }
 }

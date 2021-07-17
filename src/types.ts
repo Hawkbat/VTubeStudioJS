@@ -1,6 +1,6 @@
 
 export class VTubeStudioError extends Error {
-    constructor(public readonly data: Readonly<ApiError['data']>, public readonly requestID: string) {
+    constructor(public readonly data: Readonly<IApiError['data']>, public readonly requestID: string) {
         super(`${data.message} (Error Code: ${data.errorID} ${ErrorCode[data.errorID] ?? ErrorCode.Unknown}) (Request ID: ${requestID})`)
         this.name = this.constructor.name
         Object.setPrototypeOf(this, new.target.prototype)
@@ -74,13 +74,13 @@ export interface BaseParameter {
     defaultValue: number
 }
 
-export interface Live2DParameter extends BaseParameter { }
+export interface ILive2DParameter extends BaseParameter { }
 
-export interface VTSParameter extends BaseParameter {
+export interface IVTSParameter extends BaseParameter {
     addedBy: string
 }
 
-export interface ApiMessage<Type extends string, Data extends object> {
+export interface IApiMessage<Type extends string, Data extends object> {
     apiName: 'VTubeStudioPublicAPI'
     apiVersion: `${number}.${number}`
     requestID: string
@@ -88,21 +88,21 @@ export interface ApiMessage<Type extends string, Data extends object> {
     data: Data
 }
 
-export interface ApiRequest<Type extends string, Data extends object> extends ApiMessage<`${Type}Request`, Data> { }
+export interface IApiRequest<Type extends string, Data extends object> extends IApiMessage<`${Type}Request`, Data> { }
 
-export interface ApiResponse<Type extends string, Data extends object> extends ApiMessage<`${Type}Response`, Data> {
+export interface IApiResponse<Type extends string, Data extends object> extends IApiMessage<`${Type}Response`, Data> {
     timestamp: number
 }
 
-export interface ApiError extends ApiMessage<'APIError', {
+export interface IApiError extends IApiMessage<'APIError', {
     errorID: ErrorCode
     message: string
 }> {
     timestamp: number
 }
 
-export interface ApiEndpoint<Type extends string, Request extends object, Response extends object> {
+export interface IApiEndpoint<Type extends string, Request extends object, Response extends object> {
     Type: Type
-    Request: ApiRequest<Type, Request>
-    Response: ApiResponse<Type, Response>
+    Request: IApiRequest<Type, Request>
+    Response: IApiResponse<Type, Response>
 }

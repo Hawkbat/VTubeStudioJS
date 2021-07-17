@@ -93,7 +93,7 @@ export class Plugin {
     protected isApiEnabled: boolean | null = null
     protected isAuthenticated: boolean | null = null
 
-    constructor(apiClient: ApiClient, public name: string, public author: string, public icon: string | undefined, protected authenticationToken: string | undefined, protected onAuthenticate: (token: string) => void) {
+    constructor(apiClient: ApiClient, public name: string, public author: string, public icon?: string | undefined, protected authenticationToken?: string | undefined, protected onAuthenticate?: (token: string) => void) {
         this.apiClient = this.wrapClient(apiClient)
     }
 
@@ -120,7 +120,7 @@ export class Plugin {
             }
             const { authenticationToken } = await this.apiClient.authenticationToken({ pluginName: this.name, pluginDeveloper: this.author, pluginIcon: this.icon })
             this.authenticationToken = authenticationToken
-            this.onAuthenticate(authenticationToken)
+            this.onAuthenticate?.(authenticationToken)
         }
         if (!this.isAuthenticated) throw new VTubeStudioError({ errorID: ErrorCode.InternalClientError, message: 'Plugin could not authenticate.' }, 'N/A')
     }

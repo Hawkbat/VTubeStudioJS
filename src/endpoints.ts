@@ -1,7 +1,7 @@
-import { createClientCall, createServerHandler, MessageBus } from './api'
-import type { ApiEndpoint, VTSParameter, Live2DParameter, HotkeyType } from './types'
+import { createClientCall, createServerHandler, IMessageBus } from './api'
+import type { IApiEndpoint, IVTSParameter, ILive2DParameter, HotkeyType } from './types'
 
-interface APIStateEndpoint extends ApiEndpoint<'APIState', {
+interface APIStateEndpoint extends IApiEndpoint<'APIState', {
 
 }, {
     active: boolean
@@ -9,7 +9,7 @@ interface APIStateEndpoint extends ApiEndpoint<'APIState', {
     currentSessionAuthenticated: boolean
 }> { }
 
-interface AuthenticationTokenEndpoint extends ApiEndpoint<'AuthenticationToken', {
+interface AuthenticationTokenEndpoint extends IApiEndpoint<'AuthenticationToken', {
     pluginName: string
     pluginDeveloper: string
     pluginIcon?: string
@@ -17,7 +17,7 @@ interface AuthenticationTokenEndpoint extends ApiEndpoint<'AuthenticationToken',
     authenticationToken: string
 }> { }
 
-interface AuthenticationEndpoint extends ApiEndpoint<'Authentication', {
+interface AuthenticationEndpoint extends IApiEndpoint<'Authentication', {
     pluginName: string
     pluginDeveloper: string
     authenticationToken: string
@@ -26,7 +26,7 @@ interface AuthenticationEndpoint extends ApiEndpoint<'Authentication', {
     reason: string
 }> { }
 
-interface StatisticsEndpoint extends ApiEndpoint<'Statistics', {
+interface StatisticsEndpoint extends IApiEndpoint<'Statistics', {
 
 }, {
     uptime: number
@@ -37,7 +37,7 @@ interface StatisticsEndpoint extends ApiEndpoint<'Statistics', {
     startedWithSteam: boolean
 }> { }
 
-interface VTSFolderInfoEndpoint extends ApiEndpoint<'VTSFolderInfo', {
+interface VTSFolderInfoEndpoint extends IApiEndpoint<'VTSFolderInfo', {
 
 }, {
     baseFolder: string
@@ -48,7 +48,7 @@ interface VTSFolderInfoEndpoint extends ApiEndpoint<'VTSFolderInfo', {
     logs: string
 }> { }
 
-interface CurrentModelEndpoint extends ApiEndpoint<'CurrentModel', {
+interface CurrentModelEndpoint extends IApiEndpoint<'CurrentModel', {
 
 }, {
     modelLoaded: boolean
@@ -66,7 +66,7 @@ interface CurrentModelEndpoint extends ApiEndpoint<'CurrentModel', {
     textureResolution: number
 }> { }
 
-interface AvailableModelsEndpoint extends ApiEndpoint<'AvailableModels', {
+interface AvailableModelsEndpoint extends IApiEndpoint<'AvailableModels', {
 
 }, {
     numberOfModels: number
@@ -79,13 +79,13 @@ interface AvailableModelsEndpoint extends ApiEndpoint<'AvailableModels', {
     }[]
 }> { }
 
-interface ModelLoadEndpoint extends ApiEndpoint<'ModelLoad', {
+interface ModelLoadEndpoint extends IApiEndpoint<'ModelLoad', {
     modelID: string
 }, {
     modelID: string
 }> { }
 
-interface HotkeysInCurrentModelEndpoint extends ApiEndpoint<'HotkeysInCurrentModel', {
+interface HotkeysInCurrentModelEndpoint extends IApiEndpoint<'HotkeysInCurrentModel', {
     modelID?: string
 }, {
     modelLoaded: boolean
@@ -99,36 +99,36 @@ interface HotkeysInCurrentModelEndpoint extends ApiEndpoint<'HotkeysInCurrentMod
     }[]
 }> { }
 
-interface HotkeyTriggerEndpoint extends ApiEndpoint<'HotkeyTrigger', {
+interface HotkeyTriggerEndpoint extends IApiEndpoint<'HotkeyTrigger', {
     hotkeyID: string
 }, {
     hotkeyID: string
 }> { }
 
-interface InputParameterListEndpoint extends ApiEndpoint<'InputParameterList', {
+interface InputParameterListEndpoint extends IApiEndpoint<'InputParameterList', {
 
 }, {
     modelLoaded: boolean
     modelName: string
     modelID: string
-    customParameters: VTSParameter[]
-    defaultParameters: VTSParameter[]
+    customParameters: IVTSParameter[]
+    defaultParameters: IVTSParameter[]
 }> { }
 
-interface ParameterValueEndpoint extends ApiEndpoint<'ParameterValue', {
+interface ParameterValueEndpoint extends IApiEndpoint<'ParameterValue', {
     name: string
-}, VTSParameter> { }
+}, IVTSParameter> { }
 
-interface Live2DParameterListEndpoint extends ApiEndpoint<'Live2DParameterList', {
+interface Live2DParameterListEndpoint extends IApiEndpoint<'Live2DParameterList', {
 
 }, {
     modelLoaded: boolean
     modelName: string
     modelID: string
-    parameters: Live2DParameter[]
+    parameters: ILive2DParameter[]
 }> { }
 
-interface ParameterCreationEndpoint extends ApiEndpoint<'ParameterCreation', {
+interface ParameterCreationEndpoint extends IApiEndpoint<'ParameterCreation', {
     parameterName: string
     createdBy: string
     min: number
@@ -138,13 +138,13 @@ interface ParameterCreationEndpoint extends ApiEndpoint<'ParameterCreation', {
     parameterName: string
 }> { }
 
-interface ParameterDeletionEndpoint extends ApiEndpoint<'ParameterDeletion', {
+interface ParameterDeletionEndpoint extends IApiEndpoint<'ParameterDeletion', {
     parameterName: string
 }, {
     parameterName: string
 }> { }
 
-interface InjectParameterDataEndpoint extends ApiEndpoint<'InjectParameterData', {
+interface InjectParameterDataEndpoint extends IApiEndpoint<'InjectParameterData', {
     parameterValues: {
         id: string
         value: number
@@ -154,7 +154,7 @@ interface InjectParameterDataEndpoint extends ApiEndpoint<'InjectParameterData',
 }> { }
 
 export class ApiClient {
-    constructor(private bus: MessageBus) { }
+    constructor(private bus: IMessageBus) { }
 
     apiState = createClientCall<APIStateEndpoint>(this.bus, 'APIState')
     authenticationToken = createClientCall<AuthenticationTokenEndpoint>(this.bus, 'AuthenticationToken')
@@ -175,7 +175,7 @@ export class ApiClient {
 }
 
 export class MockApiServer {
-    constructor(bus: MessageBus) {
+    constructor(bus: IMessageBus) {
         bus.on(createServerHandler<APIStateEndpoint>(bus, 'APIState', async () => ({ active: true, vTubeStudioVersion: '1.9.0', currentSessionAuthenticated: true })))
         bus.on(createServerHandler<AuthenticationTokenEndpoint>(bus, 'AuthenticationToken', async () => ({ authenticationToken: 'MOCK_VTUBE_STUDIO_API' })))
         bus.on(createServerHandler<AuthenticationEndpoint>(bus, 'Authentication', async () => ({ authenticated: true, reason: '' })))
