@@ -98,6 +98,13 @@ export function createServerHandler<T extends IApiEndpoint<any, any, any>>(bus: 
     }
 }
 
+/** @internal */
+export function createServerCall<T extends IApiEndpoint<any, any, any>>(bus: IMessageBus, type: T['Type'], handler: EndpointCall<T>): EndpointCall<T> {
+    const h = createServerHandler(bus, type, handler)
+    bus.on(h)
+    return handler
+}
+
 export interface IMessageBus {
     send: <T extends IApiMessage<any, any>>(msg: T) => void
     receive: <T extends IApiMessage<any, any>>(msg: T) => void
