@@ -67,6 +67,23 @@ class CurrentModel {
         return availableHotkeys.map(k => new Hotkey(this.vts, this, k.hotkeyID, k.type, k.name))
     }
 
+    async artMeshNames(): Promise<string[]> {
+        const { artMeshNames } = await this.vts.apiClient.artMeshList()
+        return artMeshNames
+    }
+
+    async artMeshTags(): Promise<string[]> {
+        const { artMeshTags } = await this.vts.apiClient.artMeshList()
+        return artMeshTags
+    }
+
+    async colorTint(color: { r: number, g: number, b: number, a?: number }, match?: { artMeshNumber?: number[], nameExact?: string[], nameContains?: string[], tagExact?: string[], tagContains?: string[] }): Promise<void> {
+        await this.vts.apiClient.colorTint({
+            colorTint: { colorR: color.r, colorG: color.g, colorB: color.b, colorA: color.a ?? 255 },
+            artMeshMatcher: { tintAll: !match, ...match }
+        })
+    }
+
     async live2DParameters(): Promise<Parameter[]> {
         const { parameters } = await this.vts.apiClient.live2DParameterList()
         return parameters.map(p => new Parameter(this.vts, this, p.name, p.value, p.min, p.max, p.defaultValue))
@@ -176,6 +193,17 @@ export class Plugin {
         startedWithSteam: boolean
     }> {
         return await this.apiClient.statistics()
+    }
+
+    async folderPaths(): Promise<{
+        baseFolder: string
+        models: string
+        backgrounds: string
+        items: string
+        config: string
+        logs: string
+    }> {
+        return await this.apiClient.vtsFolderInfo()
     }
 
     async models(): Promise<Model[]> {
