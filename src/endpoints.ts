@@ -35,6 +35,9 @@ interface StatisticsEndpoint extends IApiEndpoint<'Statistics', {
     allowedPlugins: number
     connectedPlugins: number
     startedWithSteam: boolean
+    windowWidth: number
+    windowHeight: number
+    windowIsFullscreen: boolean
 }> { }
 
 interface VTSFolderInfoEndpoint extends IApiEndpoint<'VTSFolderInfo', {
@@ -215,7 +218,7 @@ export class MockApiServer implements ApiShape {
     apiState = createServerCall<APIStateEndpoint>(this.bus, 'APIState', async () => ({ active: true, vTubeStudioVersion: '1.9.0', currentSessionAuthenticated: true }))
     authenticationToken = createServerCall<AuthenticationTokenEndpoint>(this.bus, 'AuthenticationToken', async () => ({ authenticationToken: 'MOCK_VTUBE_STUDIO_API' }))
     authentication = createServerCall<AuthenticationEndpoint>(this.bus, 'Authentication', async () => ({ authenticated: true, reason: '' }))
-    statistics = createServerCall<StatisticsEndpoint>(this.bus, 'Statistics', async () => ({ vTubeStudioVersion: '1.9.0', allowedPlugins: 1, connectedPlugins: 1, framerate: 30, uptime: 0, startedWithSteam: false }))
+    statistics = createServerCall<StatisticsEndpoint>(this.bus, 'Statistics', async () => ({ vTubeStudioVersion: '1.9.0', allowedPlugins: 1, connectedPlugins: 1, framerate: 30, uptime: 0, startedWithSteam: false, windowWidth: 1920, windowHeight: 1080, windowIsFullscreen: true }))
     vtsFolderInfo = createServerCall<VTSFolderInfoEndpoint>(this.bus, 'VTSFolderInfo', async () => ({ baseFolder: '', models: '', backgrounds: '', items: '', config: '', logs: '' }))
     currentModel = createServerCall<CurrentModelEndpoint>(this.bus, 'CurrentModel', async () => ({ modelLoaded: true, modelID: 'FAKE_MODEL', modelName: 'Fake Model', vtsModelPath: '', vtsModelIconPath: '', live2DModelPath: '', modelLoadTime: 0, timeSinceModelLoaded: 0, numberOfLive2DArtmeshes: 1, numberOfLive2DParameters: 0, numberOfTextures: 1, textureResolution: 1024, hasPhysicsFile: false }))
     availableModels = createServerCall<AvailableModelsEndpoint>(this.bus, 'AvailableModels', async () => ({ numberOfModels: 2, availableModels: [{ modelLoaded: true, modelID: 'FAKE_MODEL', modelName: 'Fake Model', vtsModelPath: '', vtsModelIconPath: '' }, { modelLoaded: false, modelID: 'TEST_MODEL', modelName: 'Test Model', vtsModelPath: '', vtsModelIconPath: '' }] }))

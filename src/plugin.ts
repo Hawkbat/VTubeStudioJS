@@ -191,6 +191,9 @@ export class Plugin {
         allowedPlugins: number
         connectedPlugins: number
         startedWithSteam: boolean
+        windowWidth: number
+        windowHeight: number
+        windowIsFullscreen: boolean
     }> {
         return await this.apiClient.statistics()
     }
