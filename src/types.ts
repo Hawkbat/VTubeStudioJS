@@ -49,6 +49,16 @@ export enum ErrorCode {
     HotkeyIDFoundButHotkeyDataInvalid = 204,
     HotkeyExecutionFailedBecauseBadState = 205,
     HotkeyUnknownExecutionFailure = 206,
+
+    // ColorTint
+    ColorTintRequestNoModelLoaded = 250,
+    ColorTintRequestMatchOrColorMissing = 251,
+    ColorTintRequestInvalidColorValue = 252,
+
+    // MoveModel
+    MoveModelRequestNoModelLoaded = 300,
+    MoveModelRequestMissingFields = 301,
+    MoveModelRequestValuesOutOfRange = 302,
 }
 
 export enum HotkeyType {

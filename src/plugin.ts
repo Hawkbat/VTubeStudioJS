@@ -54,12 +54,34 @@ class Model {
 }
 
 class CurrentModel {
-    constructor(protected vts: Plugin, public readonly id: string, public readonly name: string, public readonly vtsModelPath: string, public readonly live2DModelPath: string, public readonly modelLoadTime: number, public readonly timeSinceModelLoaded: number, public readonly numberOfLive2DParameters: number, public readonly numberOfLive2DArtmeshes: number, public readonly hasPhysicsFile: boolean, public readonly numberOfTextures: number, public readonly textureResolution: number) { }
+    constructor(protected vts: Plugin, public readonly id: string, public readonly name: string, public readonly vtsModelPath: string, public readonly live2DModelPath: string, public readonly modelLoadTime: number, public readonly timeSinceModelLoaded: number, public readonly numberOfLive2DParameters: number, public readonly numberOfLive2DArtmeshes: number, public readonly hasPhysicsFile: boolean, public readonly numberOfTextures: number, public readonly textureResolution: number, public readonly positionX: number, public readonly positionY: number, public readonly rotation: number, public readonly size: number) { }
 
     async refresh(): Promise<CurrentModel | null> {
         const m = await this.vts.apiClient.currentModel()
         if (!m.modelLoaded) return null
-        return new CurrentModel(this.vts, m.modelID, m.modelName, m.vtsModelPath, m.live2DModelPath, m.modelLoadTime, m.timeSinceModelLoaded, m.numberOfLive2DParameters, m.numberOfLive2DArtmeshes, m.hasPhysicsFile, m.numberOfTextures, m.textureResolution)
+        return new CurrentModel(this.vts, m.modelID, m.modelName, m.vtsModelPath, m.live2DModelPath, m.modelLoadTime, m.timeSinceModelLoaded, m.numberOfLive2DParameters, m.numberOfLive2DArtmeshes, m.hasPhysicsFile, m.numberOfTextures, m.textureResolution, m.modelPosition.positionX, m.modelPosition.positionY, m.modelPosition.rotation, m.modelPosition.size)
+    }
+
+    async moveBy(duration: number, by: { offsetX?: number, offsetY?: number, rotateBy?: number, sizeChange?: number }): Promise<void> {
+        await this.vts.apiClient.moveModel({
+            timeInSeconds: duration,
+            valuesAreRelativeToModel: true,
+            positionX: by.offsetX,
+            positionY: by.offsetY,
+            rotation: by.rotateBy,
+            size: by.sizeChange,
+        })
+    }
+
+    async moveTo(duration: number, to: { positionX?: number, positionY?: number, rotation?: number, size?: number }): Promise<void> {
+        await this.vts.apiClient.moveModel({
+            timeInSeconds: duration,
+            valuesAreRelativeToModel: false,
+            positionX: to.positionX,
+            positionY: to.positionY,
+            rotation: to.rotation,
+            size: to.size,
+        })
     }
 
     async hotkeys(): Promise<Hotkey[]> {
@@ -217,6 +239,6 @@ export class Plugin {
     async currentModel(): Promise<CurrentModel | null> {
         const m = await this.apiClient.currentModel()
         if (!m.modelLoaded) return null
-        return new CurrentModel(this, m.modelID, m.modelName, m.vtsModelPath, m.live2DModelPath, m.modelLoadTime, m.timeSinceModelLoaded, m.numberOfLive2DParameters, m.numberOfLive2DArtmeshes, m.hasPhysicsFile, m.numberOfTextures, m.textureResolution)
+        return new CurrentModel(this, m.modelID, m.modelName, m.vtsModelPath, m.live2DModelPath, m.modelLoadTime, m.timeSinceModelLoaded, m.numberOfLive2DParameters, m.numberOfLive2DArtmeshes, m.hasPhysicsFile, m.numberOfTextures, m.textureResolution, m.modelPosition.positionX, m.modelPosition.positionY, m.modelPosition.rotation, m.modelPosition.size)
     }
 }
