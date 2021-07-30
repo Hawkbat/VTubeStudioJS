@@ -131,6 +131,7 @@ export class Plugin {
     public apiClient: ApiClient
     protected isApiEnabled: boolean | null = null
     protected isAuthenticated: boolean | null = null
+    protected isAuthenticating: boolean | null = null
 
     constructor(apiClient: ApiClient, public name: string, public author: string, public icon?: string | undefined, protected authenticationToken?: string | undefined, protected onAuthenticate?: (token: string) => void) {
         this.apiClient = this.wrapClient(apiClient)
@@ -146,12 +147,14 @@ export class Plugin {
     }
 
     private async authenticate(): Promise<void> {
-        if (this.isAuthenticated === null) {
+        if (this.isAuthenticated === null && this.isAuthenticating !== true) {
+            this.isAuthenticating = true
             if (this.authenticationToken !== undefined) {
                 try {
                     const auth = await this.apiClient.authentication({ authenticationToken: this.authenticationToken, pluginName: this.name, pluginDeveloper: this.author })
                     if (!auth.authenticated) throw new VTubeStudioError({ errorID: ErrorCode.TokenRequestDenied, message: auth.reason }, 'N/A')
                     this.isAuthenticated = true
+                    this.isAuthenticating = false
                     return
                 } catch (e) {
                     console.error(e)
@@ -159,6 +162,8 @@ export class Plugin {
             }
             const { authenticationToken } = await this.apiClient.authenticationToken({ pluginName: this.name, pluginDeveloper: this.author, pluginIcon: this.icon })
             this.authenticationToken = authenticationToken
+            this.isAuthenticated = true
+            this.isAuthenticating = false
             this.onAuthenticate?.(authenticationToken)
         }
         if (!this.isAuthenticated) throw new VTubeStudioError({ errorID: ErrorCode.InternalClientError, message: 'Plugin could not authenticate.' }, 'N/A')
@@ -198,6 +203,7 @@ export class Plugin {
                 }
                 if (e.data.errorID === ErrorCode.RequestRequiresAuthetication) {
                     this.isAuthenticated = null
+                    this.isAuthenticating = null
                     await this.authenticate()
                     return await call(...args)
                 }
