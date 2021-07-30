@@ -132,6 +132,7 @@ export class Plugin {
     protected isApiEnabled: boolean | null = null
     protected isAuthenticated: boolean | null = null
     protected isAuthenticating: boolean | null = null
+    protected ongoingAuthCall: Promise<void> | null = null
 
     constructor(apiClient: ApiClient, public name: string, public author: string, public icon?: string | undefined, protected authenticationToken?: string | undefined, protected onAuthenticate?: (token: string) => void) {
         this.apiClient = this.wrapClient(apiClient)
@@ -149,22 +150,28 @@ export class Plugin {
     private async authenticate(): Promise<void> {
         if (this.isAuthenticated === null && this.isAuthenticating !== true) {
             this.isAuthenticating = true
-            if (this.authenticationToken !== undefined) {
-                try {
-                    const auth = await this.apiClient.authentication({ authenticationToken: this.authenticationToken, pluginName: this.name, pluginDeveloper: this.author })
-                    if (!auth.authenticated) throw new VTubeStudioError({ errorID: ErrorCode.TokenRequestDenied, message: auth.reason }, 'N/A')
-                    this.isAuthenticated = true
-                    this.isAuthenticating = false
-                    return
-                } catch (e) {
-                    console.error(e)
+            try {
+                if (this.authenticationToken !== undefined) {
+                    try {
+                        const auth = await this.apiClient.authentication({ authenticationToken: this.authenticationToken, pluginName: this.name, pluginDeveloper: this.author })
+                        if (!auth.authenticated) throw new VTubeStudioError({ errorID: ErrorCode.TokenRequestDenied, message: auth.reason }, 'N/A')
+                        this.isAuthenticated = true
+                        this.isAuthenticating = false
+                        return
+                    } catch (e) {
+                        console.error(e)
+                    }
                 }
+                const { authenticationToken } = await this.apiClient.authenticationToken({ pluginName: this.name, pluginDeveloper: this.author, pluginIcon: this.icon })
+                this.authenticationToken = authenticationToken
+                this.isAuthenticated = true
+                this.isAuthenticating = false
+                this.onAuthenticate?.(authenticationToken)
+            } catch (e) {
+                console.error(e)
+                this.isAuthenticated = null
+                this.isAuthenticating = false
             }
-            const { authenticationToken } = await this.apiClient.authenticationToken({ pluginName: this.name, pluginDeveloper: this.author, pluginIcon: this.icon })
-            this.authenticationToken = authenticationToken
-            this.isAuthenticated = true
-            this.isAuthenticating = false
-            this.onAuthenticate?.(authenticationToken)
         }
         if (!this.isAuthenticated) throw new VTubeStudioError({ errorID: ErrorCode.InternalClientError, message: 'Plugin could not authenticate.' }, 'N/A')
     }
@@ -194,7 +201,8 @@ export class Plugin {
     private async safeCall<Args extends any[], Returns>(call: (...args: Args) => Promise<Returns>, ...args: Args): Promise<Returns> {
         try {
             await this.checkApiState()
-            await this.authenticate()
+            await (this.ongoingAuthCall ?? (this.ongoingAuthCall = this.authenticate()))
+            this.ongoingAuthCall = null
             return await call(...args)
         } catch (e) {
             if (e instanceof VTubeStudioError) {
@@ -204,7 +212,8 @@ export class Plugin {
                 if (e.data.errorID === ErrorCode.RequestRequiresAuthetication) {
                     this.isAuthenticated = null
                     this.isAuthenticating = null
-                    await this.authenticate()
+                    await (this.ongoingAuthCall ?? (this.ongoingAuthCall = this.authenticate()))
+                    this.ongoingAuthCall = null
                     return await call(...args)
                 }
             }
