@@ -62,6 +62,12 @@ class CurrentModel {
         return new CurrentModel(this.vts, m.modelID, m.modelName, m.vtsModelPath, m.live2DModelPath, m.modelLoadTime, m.timeSinceModelLoaded, m.numberOfLive2DParameters, m.numberOfLive2DArtmeshes, m.hasPhysicsFile, m.numberOfTextures, m.textureResolution, m.modelPosition.positionX, m.modelPosition.positionY, m.modelPosition.rotation, m.modelPosition.size)
     }
 
+    async position(): Promise<{ positionX: number, positionY: number, rotation: number, size: number } | null> {
+        const m = await this.vts.apiClient.currentModel()
+        if (!m.modelLoaded) return null
+        return m.modelPosition
+    }
+
     async moveBy(duration: number, by: { offsetX?: number, offsetY?: number, rotateBy?: number, sizeChange?: number }): Promise<void> {
         await this.vts.apiClient.moveModel({
             timeInSeconds: duration,
