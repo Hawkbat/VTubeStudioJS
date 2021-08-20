@@ -43,12 +43,12 @@ interface StatisticsEndpoint extends IApiEndpoint<'Statistics', {
 interface VTSFolderInfoEndpoint extends IApiEndpoint<'VTSFolderInfo', {
 
 }, {
-    baseFolder: string
     models: string
     backgrounds: string
     items: string
     config: string
     logs: string
+    backup: string
 }> { }
 
 interface CurrentModelEndpoint extends IApiEndpoint<'CurrentModel', {
@@ -57,9 +57,9 @@ interface CurrentModelEndpoint extends IApiEndpoint<'CurrentModel', {
     modelLoaded: boolean
     modelName: string
     modelID: string
-    vtsModelPath: string
-    vtsModelIconPath: string
-    live2DModelPath: string
+    vtsModelName: string
+    vtsModelIconName: string
+    live2DModelName: string
     modelLoadTime: number
     timeSinceModelLoaded: number
     numberOfLive2DParameters: number
@@ -83,8 +83,8 @@ interface AvailableModelsEndpoint extends IApiEndpoint<'AvailableModels', {
         modelLoaded: boolean
         modelName: string
         modelID: string
-        vtsModelPath: string
-        vtsModelIconPath: string
+        vtsModelName: string
+        vtsModelIconName: string
     }[]
 }> { }
 
@@ -185,7 +185,7 @@ interface Live2DParameterListEndpoint extends IApiEndpoint<'Live2DParameterList'
 
 interface ParameterCreationEndpoint extends IApiEndpoint<'ParameterCreation', {
     parameterName: string
-    createdBy: string
+    explanation: string
     min: number
     max: number
     defaultValue: number
@@ -202,6 +202,7 @@ interface ParameterDeletionEndpoint extends IApiEndpoint<'ParameterDeletion', {
 interface InjectParameterDataEndpoint extends IApiEndpoint<'InjectParameterData', {
     parameterValues: {
         id: string
+        weight: number
         value: number
     }[]
 }, {
@@ -224,6 +225,7 @@ export class ApiClient {
     hotkeyTrigger = createClientCall<HotkeyTriggerEndpoint>(this.bus, 'HotkeyTrigger')
     artMeshList = createClientCall<ArtMeshListEndpoint>(this.bus, 'ArtMeshList')
     colorTint = createClientCall<ColorTintEndpoint>(this.bus, 'ColorTint')
+    faceFound = createClientCall<FaceFoundEndpoint>(this.bus, 'FaceFound')
     inputParameterList = createClientCall<InputParameterListEndpoint>(this.bus, 'InputParameterList')
     parameterValue = createClientCall<ParameterValueEndpoint>(this.bus, 'ParameterValue')
     live2DParameterList = createClientCall<Live2DParameterListEndpoint>(this.bus, 'Live2DParameterList')
@@ -243,10 +245,10 @@ export class MockApiServer implements ApiShape {
     authenticationToken = createServerCall<AuthenticationTokenEndpoint>(this.bus, 'AuthenticationToken', async () => ({ authenticationToken: 'MOCK_VTUBE_STUDIO_API' }))
     authentication = createServerCall<AuthenticationEndpoint>(this.bus, 'Authentication', async () => ({ authenticated: true, reason: '' }))
     statistics = createServerCall<StatisticsEndpoint>(this.bus, 'Statistics', async () => ({ vTubeStudioVersion: '1.9.0', allowedPlugins: 1, connectedPlugins: 1, framerate: 30, uptime: 0, startedWithSteam: false, windowWidth: 1920, windowHeight: 1080, windowIsFullscreen: true }))
-    vtsFolderInfo = createServerCall<VTSFolderInfoEndpoint>(this.bus, 'VTSFolderInfo', async () => ({ baseFolder: '', models: '', backgrounds: '', items: '', config: '', logs: '' }))
-    currentModel = createServerCall<CurrentModelEndpoint>(this.bus, 'CurrentModel', async () => ({ modelLoaded: true, modelID: 'FAKE_MODEL', modelName: 'Fake Model', vtsModelPath: '', vtsModelIconPath: '', live2DModelPath: '', modelLoadTime: 0, timeSinceModelLoaded: 0, numberOfLive2DArtmeshes: 1, numberOfLive2DParameters: 0, numberOfTextures: 1, textureResolution: 1024, hasPhysicsFile: false, modelPosition: { positionX: 0, positionY: 0, rotation: 0, size: 1 } }))
+    vtsFolderInfo = createServerCall<VTSFolderInfoEndpoint>(this.bus, 'VTSFolderInfo', async () => ({ models: '', backgrounds: '', items: '', config: '', logs: '', backup: '' }))
+    currentModel = createServerCall<CurrentModelEndpoint>(this.bus, 'CurrentModel', async () => ({ modelLoaded: true, modelID: 'FAKE_MODEL', modelName: 'Fake Model', vtsModelName: '', vtsModelIconName: '', live2DModelName: '', modelLoadTime: 0, timeSinceModelLoaded: 0, numberOfLive2DArtmeshes: 1, numberOfLive2DParameters: 0, numberOfTextures: 1, textureResolution: 1024, hasPhysicsFile: false, modelPosition: { positionX: 0, positionY: 0, rotation: 0, size: 1 } }))
     moveModel = createServerCall<MoveModelEndpoint>(this.bus, 'MoveModel', async () => { })
-    availableModels = createServerCall<AvailableModelsEndpoint>(this.bus, 'AvailableModels', async () => ({ numberOfModels: 2, availableModels: [{ modelLoaded: true, modelID: 'FAKE_MODEL', modelName: 'Fake Model', vtsModelPath: '', vtsModelIconPath: '' }, { modelLoaded: false, modelID: 'TEST_MODEL', modelName: 'Test Model', vtsModelPath: '', vtsModelIconPath: '' }] }))
+    availableModels = createServerCall<AvailableModelsEndpoint>(this.bus, 'AvailableModels', async () => ({ numberOfModels: 2, availableModels: [{ modelLoaded: true, modelID: 'FAKE_MODEL', modelName: 'Fake Model', vtsModelName: '', vtsModelIconName: '' }, { modelLoaded: false, modelID: 'TEST_MODEL', modelName: 'Test Model', vtsModelName: '', vtsModelIconName: '' }] }))
     modelLoad = createServerCall<ModelLoadEndpoint>(this.bus, 'ModelLoad', async ({ modelID }) => ({ modelID }))
     hotkeysInCurrentModel = createServerCall<HotkeysInCurrentModelEndpoint>(this.bus, 'HotkeysInCurrentModel', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', availableHotkeys: [] }))
     hotkeyTrigger = createServerCall<HotkeyTriggerEndpoint>(this.bus, 'HotkeyTrigger', async ({ hotkeyID }) => ({ hotkeyID }))

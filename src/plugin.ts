@@ -13,18 +13,18 @@ class Parameter {
         return this
     }
 
-    async setValue(value: number): Promise<Parameter> {
-        await this.vts.apiClient.injectParameterData({ parameterValues: [{ id: this.name, value }] })
+    async setValue(value: number, weight: number = 1): Promise<Parameter> {
+        await this.vts.apiClient.injectParameterData({ parameterValues: [{ id: this.name, weight, value }] })
         this.value = value
         return this
     }
 }
 
 class CustomParameter extends Parameter {
-    constructor(vts: Plugin, model: CurrentModel, name: string, value: number, min: number, max: number, defaultValue: number, public readonly addedBy: string) { super(vts, model, name, value, min, max, defaultValue) }
+    constructor(vts: Plugin, model: CurrentModel, name: string, value: number, min: number, max: number, defaultValue: number, public readonly explanation: string) { super(vts, model, name, value, min, max, defaultValue) }
 
     async update({ min, max, defaultValue }: Partial<{ min: number, max: number, defaultValue: number }>): Promise<Parameter> {
-        await this.vts.apiClient.parameterCreation({ parameterName: this.name, createdBy: this.addedBy, min: min ?? this.min, max: max ?? this.max, defaultValue: defaultValue ?? this.defaultValue })
+        await this.vts.apiClient.parameterCreation({ parameterName: this.name, explanation: this.explanation, min: min ?? this.min, max: max ?? this.max, defaultValue: defaultValue ?? this.defaultValue })
         this.min = min ?? this.min
         this.max = max ?? this.max
         this.defaultValue = defaultValue ?? this.defaultValue
@@ -45,7 +45,7 @@ class Hotkey {
 }
 
 class Model {
-    constructor(protected vts: Plugin, public readonly id: string, public readonly name: string, public readonly vtsModelPath: string, public readonly vtsModelIconPath: string) { }
+    constructor(protected vts: Plugin, public readonly id: string, public readonly name: string, public readonly vtsModelName: string, public readonly vtsModelIconName: string) { }
 
     async load(): Promise<CurrentModel> {
         await this.vts.apiClient.modelLoad({ modelID: this.id })
@@ -54,12 +54,12 @@ class Model {
 }
 
 class CurrentModel {
-    constructor(protected vts: Plugin, public readonly id: string, public readonly name: string, public readonly vtsModelPath: string, public readonly live2DModelPath: string, public readonly modelLoadTime: number, public readonly timeSinceModelLoaded: number, public readonly numberOfLive2DParameters: number, public readonly numberOfLive2DArtmeshes: number, public readonly hasPhysicsFile: boolean, public readonly numberOfTextures: number, public readonly textureResolution: number, public readonly positionX: number, public readonly positionY: number, public readonly rotation: number, public readonly size: number) { }
+    constructor(protected vts: Plugin, public readonly id: string, public readonly name: string, public readonly vtsModelName: string, public readonly live2DModelName: string, public readonly modelLoadTime: number, public readonly timeSinceModelLoaded: number, public readonly numberOfLive2DParameters: number, public readonly numberOfLive2DArtmeshes: number, public readonly hasPhysicsFile: boolean, public readonly numberOfTextures: number, public readonly textureResolution: number, public readonly positionX: number, public readonly positionY: number, public readonly rotation: number, public readonly size: number) { }
 
     async refresh(): Promise<CurrentModel | null> {
         const m = await this.vts.apiClient.currentModel()
         if (!m.modelLoaded) return null
-        return new CurrentModel(this.vts, m.modelID, m.modelName, m.vtsModelPath, m.live2DModelPath, m.modelLoadTime, m.timeSinceModelLoaded, m.numberOfLive2DParameters, m.numberOfLive2DArtmeshes, m.hasPhysicsFile, m.numberOfTextures, m.textureResolution, m.modelPosition.positionX, m.modelPosition.positionY, m.modelPosition.rotation, m.modelPosition.size)
+        return new CurrentModel(this.vts, m.modelID, m.modelName, m.vtsModelName, m.live2DModelName, m.modelLoadTime, m.timeSinceModelLoaded, m.numberOfLive2DParameters, m.numberOfLive2DArtmeshes, m.hasPhysicsFile, m.numberOfTextures, m.textureResolution, m.modelPosition.positionX, m.modelPosition.positionY, m.modelPosition.rotation, m.modelPosition.size)
     }
 
     async position(): Promise<{ positionX: number, positionY: number, rotation: number, size: number } | null> {
@@ -127,8 +127,8 @@ class CurrentModel {
         return defaultParameters.map(p => new Parameter(this.vts, this, p.name, p.value, p.min, p.max, p.defaultValue))
     }
 
-    async createParameter(name: string, min: number, max: number, defaultValue: number): Promise<CustomParameter> {
-        await this.vts.apiClient.parameterCreation({ parameterName: name, createdBy: this.vts.name, min, max, defaultValue })
+    async createParameter(name: string, explanation: string, min: number, max: number, defaultValue: number): Promise<CustomParameter> {
+        await this.vts.apiClient.parameterCreation({ parameterName: name, explanation, min, max, defaultValue })
         return new CustomParameter(this.vts, this, name, defaultValue, min, max, defaultValue, this.vts.name)
     }
 }
@@ -227,6 +227,14 @@ export class Plugin {
         }
     }
 
+    async apiState(): Promise<{
+        active: boolean
+        vTubeStudioVersion: `${number}.${number}.${number}`
+        currentSessionAuthenticated: boolean
+    }> {
+        return await this.apiClient.apiState()
+    }
+
     async statistics(): Promise<{
         uptime: number
         framerate: number
@@ -241,25 +249,27 @@ export class Plugin {
         return await this.apiClient.statistics()
     }
 
-    async folderPaths(): Promise<{
-        baseFolder: string
+    async folderNames(): Promise<{
         models: string
         backgrounds: string
         items: string
         config: string
         logs: string
+        backup: string
     }> {
         return await this.apiClient.vtsFolderInfo()
     }
 
     async models(): Promise<Model[]> {
         const { availableModels } = await this.apiClient.availableModels()
-        return availableModels.map(m => new Model(this, m.modelID, m.modelName, m.vtsModelPath, m.vtsModelIconPath))
+        return availableModels.map(m => new Model(this, m.modelID, m.modelName, m.vtsModelName, m.vtsModelIconName))
     }
 
     async currentModel(): Promise<CurrentModel | null> {
         const m = await this.apiClient.currentModel()
         if (!m.modelLoaded) return null
+        return new CurrentModel(this, m.modelID, m.modelName, m.vtsModelName, m.live2DModelName, m.modelLoadTime, m.timeSinceModelLoaded, m.numberOfLive2DParameters, m.numberOfLive2DArtmeshes, m.hasPhysicsFile, m.numberOfTextures, m.textureResolution, m.modelPosition.positionX, m.modelPosition.positionY, m.modelPosition.rotation, m.modelPosition.size)
+    }
 
     async isFaceFound(): Promise<boolean> {
         return (await this.apiClient.faceFound()).found
