@@ -154,6 +154,12 @@ interface ColorTintEndpoint extends IApiEndpoint<'ColorTint', {
     matchedArtMeshes: number
 }> { }
 
+interface FaceFoundEndpoint extends IApiEndpoint<'FaceFound', {
+
+}, {
+    found: boolean
+}> { }
+
 interface InputParameterListEndpoint extends IApiEndpoint<'InputParameterList', {
 
 }, {
@@ -246,6 +252,7 @@ export class MockApiServer implements ApiShape {
     hotkeyTrigger = createServerCall<HotkeyTriggerEndpoint>(this.bus, 'HotkeyTrigger', async ({ hotkeyID }) => ({ hotkeyID }))
     artMeshList = createServerCall<ArtMeshListEndpoint>(this.bus, 'ArtMeshList', async () => ({ modelLoaded: true, numberOfArtMeshNames: 0, numberOfArtMeshTags: 0, artMeshNames: [], artMeshTags: [] }))
     colorTint = createServerCall<ColorTintEndpoint>(this.bus, 'ColorTint', async () => ({ matchedArtMeshes: 0 }))
+    faceFound = createServerCall<FaceFoundEndpoint>(this.bus, 'FaceFound', async () => ({ found: true }))
     inputParameterList = createServerCall<InputParameterListEndpoint>(this.bus, 'InputParameterList', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', customParameters: [], defaultParameters: [] }))
     parameterValue = createServerCall<ParameterValueEndpoint>(this.bus, 'ParameterValue', async () => ({ name: 'Param', addedBy: '', min: 0, max: 0, value: 0, defaultValue: 0 }))
     live2DParameterList = createServerCall<Live2DParameterListEndpoint>(this.bus, 'Live2DParameterList', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', parameters: [] }))

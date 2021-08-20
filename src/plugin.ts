@@ -260,6 +260,8 @@ export class Plugin {
     async currentModel(): Promise<CurrentModel | null> {
         const m = await this.apiClient.currentModel()
         if (!m.modelLoaded) return null
-        return new CurrentModel(this, m.modelID, m.modelName, m.vtsModelPath, m.live2DModelPath, m.modelLoadTime, m.timeSinceModelLoaded, m.numberOfLive2DParameters, m.numberOfLive2DArtmeshes, m.hasPhysicsFile, m.numberOfTextures, m.textureResolution, m.modelPosition.positionX, m.modelPosition.positionY, m.modelPosition.rotation, m.modelPosition.size)
+
+    async isFaceFound(): Promise<boolean> {
+        return (await this.apiClient.faceFound()).found
     }
 }
