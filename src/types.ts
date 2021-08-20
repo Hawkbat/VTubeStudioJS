@@ -59,6 +59,30 @@ export enum ErrorCode {
     MoveModelRequestNoModelLoaded = 300,
     MoveModelRequestMissingFields = 301,
     MoveModelRequestValuesOutOfRange = 302,
+
+    // ParameterCreation
+    CustomParamNameInvalid = 350,
+    CustomparamValuesInvalid = 351,
+    CustomParamAlreadyCreatedByOtherPlugin = 352,
+    CustomParamExplanationTooLong = 353,
+    CustomParamDefaultParamNameNotAllowed = 354,
+    CustomParamLimitPerPluginExceeded = 355,
+    CustomParamLimitTotalExceeded = 356,
+
+    CustomParamDeletionNameInvalid = 400,
+    CustomParamDeletionNotFound = 401,
+    CustomParamDeletionCreatedByOtherPlugin = 402,
+    CustomParamDeletionCannotDeleteDefaultParam = 403,
+
+    // InjectParameterData
+    InjectDataNoDataProvided = 450,
+    InjectDataValueInvalid = 451,
+    InjectDataWeightInvalid = 452,
+    InjectDataParamNameNotFound = 453,
+    InjectDataParamControlledByOtherPlugin = 454,
+
+    // ParameterValue
+    ParameterValueRequestParameterNotFound = 500,
 }
 
 export enum HotkeyType {
