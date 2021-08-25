@@ -37,7 +37,7 @@ class CustomParameter extends Parameter {
 }
 
 class Hotkey {
-    constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly id: string, public readonly type: string, public readonly name: string) { }
+    constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly id: string, public readonly type: string, public readonly name: string, public readonly file: string) { }
 
     async trigger(): Promise<void> {
         await this.vts.apiClient.hotkeyTrigger({ hotkeyID: this.id })
@@ -92,7 +92,7 @@ class CurrentModel {
 
     async hotkeys(): Promise<Hotkey[]> {
         const { availableHotkeys } = await this.vts.apiClient.hotkeysInCurrentModel()
-        return availableHotkeys.map(k => new Hotkey(this.vts, this, k.hotkeyID, k.type, k.name))
+        return availableHotkeys.map(k => new Hotkey(this.vts, this, k.hotkeyID, k.type, k.name, k.file))
     }
 
     async artMeshNames(): Promise<string[]> {
