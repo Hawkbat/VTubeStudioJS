@@ -4,7 +4,6 @@
   "description": "A TypeScript implementation of the VTube Studio WebSocket API.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
-  "type": "module",
   "scripts": {
     "prepare": "npm run clean && npm run build",
     "build": "tsc -b ./",
