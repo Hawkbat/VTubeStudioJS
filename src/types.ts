@@ -1,5 +1,7 @@
 
 export class VTubeStudioError extends Error {
+    public thrownBy?: any;
+
     constructor(public readonly data: Readonly<IApiError['data']>, public readonly requestID: string) {
         super(`${data.message} (Error Code: ${data.errorID} ${ErrorCode[data.errorID] ?? ErrorCode.Unknown}) (Request ID: ${requestID})`)
         this.name = this.constructor.name
@@ -9,6 +11,10 @@ export class VTubeStudioError extends Error {
 
 export enum ErrorCode {
     Unknown = NaN,
+
+    // Websocket Closed
+    MessageBusError = -3,
+    MessageBusClosed = -2,
 
     // General
     InternalClientError = -1,
