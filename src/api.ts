@@ -1,5 +1,5 @@
 import { generateID } from './utils'
-import { IApiEndpoint, IApiMessage, IApiError, VTubeStudioError } from './types'
+import { IApiEndpoint, IApiMessage, IApiError, VTubeStudioError, ErrorCode } from './types'
 
 type EndpointCall<T extends IApiEndpoint<any, any, any>> = T extends IApiEndpoint<infer _, infer Request, infer Response> ?
     ({} extends Request ?
@@ -11,12 +11,12 @@ type EndpointCall<T extends IApiEndpoint<any, any, any>> = T extends IApiEndpoin
             (data: Request) => Promise<Response>)) :
     never
 
-interface MessageHandler<T extends IApiMessage<any, any> = IApiMessage<any, any>>{
-    (msg: T): void;
+interface MessageHandler<T extends IApiMessage<any, any> = IApiMessage<any, any>> {
+    (msg: T): void
     context?: {
-        timeout: number;
-        reject: (reason?: any)=>void;
-        requestID: string;
+        timeout: number
+        reject: (reason?: any) => void
+        requestID: string
     }
 }
 
@@ -68,10 +68,10 @@ function msgIsError(msg: IApiMessage<any, any>): msg is IApiError {
 export function createClientCall<T extends IApiEndpoint<any, any, any>>(bus: IMessageBus, type: T['Type']): EndpointCall<T> {
     return ((data: T['Request']['data']) => new Promise<T['Response']['data']>((resolve, reject) => {
         const requestID = generateID(16)
-        const handler: MessageHandler = (msg: IApiMessage<any, any>) => {
+        const handler: MessageHandler = msg => {
             if (msg.requestID === requestID) {
                 bus.off(handler)
-                clearTimeout((handler.context as {timeout: number}).timeout)
+                clearTimeout((handler.context as { timeout: number }).timeout)
                 if (msgIsResponse<T>(msg, type))
                     resolve(msg.data ?? {})
                 else if (msgIsError(msg))
@@ -81,10 +81,11 @@ export function createClientCall<T extends IApiEndpoint<any, any, any>>(bus: IMe
         handler.context = {
             timeout: setTimeout(() => {
                 bus.off(handler)
-                reject(new VTubeStudioError({ errorID: -1, message: 'The request timed out.' }, requestID))
+                reject(new VTubeStudioError({ errorID: ErrorCode.InternalClientError, message: 'The request timed out.' }, requestID))
             }, 5000),
-            reject, requestID
-        };
+            reject,
+            requestID,
+        }
         bus.on(handler)
         bus.send(makeRequestMsg(type, requestID, data ?? {}))
     })) as EndpointCall<T>
@@ -101,7 +102,7 @@ export function createServerHandler<T extends IApiEndpoint<any, any, any>>(bus: 
                 if (e instanceof VTubeStudioError) {
                     bus.send(makeErrorMsg(msg.requestID, e.data))
                 } else {
-                    bus.send(makeErrorMsg(msg.requestID, { errorID: -1, message: String(e) }))
+                    bus.send(makeErrorMsg(msg.requestID, { errorID: ErrorCode.InternalClientError, message: String(e) }))
                 }
             }
         }
@@ -123,70 +124,78 @@ export interface IMessageBus {
 }
 
 interface IWebSocketLike {
-    send(data: string): void;
-    addEventListener(type: 'message' | 'close' | 'error', handler: (event: { data: any }) => void): void;
+    send(data: string): void
+    addEventListener(type: 'message' | 'close' | 'error', handler: (event: { data: any }) => void): void
 }
 
 abstract class MessageBusBase implements IMessageBus {
-    protected handlers: MessageHandler[] = [];
-    protected _isClosed: boolean = false;
+    protected handlers: MessageHandler[] = []
 
     on(handler: MessageHandler<IApiMessage<any, any>>): void {
-        if(this._isClosed) return;
-        this.handlers.push(handler);
+        this.handlers.push(handler)
     }
 
     off(handler: MessageHandler<IApiMessage<any, any>>): void {
-        if(this._isClosed) return;
         this.handlers.splice(this.handlers.findIndex(h => h === handler), 1)
     }
 
     receive<T extends IApiMessage<any, any>>(msg: T): void {
-        if(this._isClosed) return;
         for (const handler of [...this.handlers]) handler(msg)
     }
 
     abstract send<T extends IApiMessage<any, any>>(msg: T): void
-
-    close(){
-        this.throwExeception((requestID: string)=>new VTubeStudioError({ errorID: -2, message: 'Message bus closed.' }, requestID));
-        this._isClosed = true;
-    }
-
-    protected throwExeception(errorSupplier: (requestID: string)=>any){
-        for (const handler of [...this.handlers]) {
-            if(handler.context !== undefined){
-                clearTimeout(handler.context.timeout);
-                handler.context.reject(errorSupplier(handler.context.requestID));
-            }
-        }
-        this.handlers = [];
-    }
 }
 
 export class WebSocketBus extends MessageBusBase {
+    protected isClosed: boolean = false
 
     constructor(private webSocket: IWebSocketLike) {
         super()
         webSocket.addEventListener('message', e => {
             const msg = JSON.parse(e.data)
             this.receive(msg)
-        });
+        })
         webSocket.addEventListener('close', () => {
-            this.close();
-        });
+            this.close()
+        })
         webSocket.addEventListener('error', (e) => {
-            this.throwExeception((requestID: string)=>{
-                let err = new VTubeStudioError({ errorID: -2, message: 'Message bus error.' }, requestID);
-                err.thrownBy = e;
-                return err;
-            });
-        });
+            this.throwException((requestID: string) => new VTubeStudioError({ errorID: ErrorCode.MessageBusError, message: `Message bus error: ${e}` }, requestID, e))
+        })
+    }
+
+    override on(handler: MessageHandler<IApiMessage<any, any>>): void {
+        if (this.isClosed) return
+        return super.on(handler)
+    }
+
+    override off(handler: MessageHandler<IApiMessage<any, any>>): void {
+        if (this.isClosed) return
+        return super.off(handler)
+    }
+
+    override receive<T extends IApiMessage<any, any>>(msg: T): void {
+        if (this.isClosed) return
+        return super.receive(msg)
     }
 
     send<T extends IApiMessage<any, any>>(msg: T): void {
-        if(this._isClosed) return;
-        this.webSocket.send(JSON.stringify(msg));
+        if (this.isClosed) return
+        this.webSocket.send(JSON.stringify(msg))
+    }
+
+    close() {
+        this.throwException((requestID: string) => new VTubeStudioError({ errorID: ErrorCode.MessageBusClosed, message: 'Message bus closed.' }, requestID))
+        this.isClosed = true
+    }
+
+    protected throwException(errorSupplier: (requestID: string) => unknown) {
+        for (const handler of [...this.handlers]) {
+            if (handler.context !== undefined) {
+                clearTimeout(handler.context.timeout)
+                handler.context.reject(errorSupplier(handler.context.requestID))
+            }
+        }
+        this.handlers = []
     }
 }
 
@@ -208,7 +217,6 @@ export class EchoBus extends MessageBusBase {
     }
 
     send<T extends IApiMessage<any, any>>(msg: T): void {
-        if(this._isClosed) return;
         this.other.receive(msg)
     }
 }

@@ -1,8 +1,7 @@
 
 export class VTubeStudioError extends Error {
-    public thrownBy?: any;
 
-    constructor(public readonly data: Readonly<IApiError['data']>, public readonly requestID: string) {
+    constructor(public readonly data: Readonly<IApiError['data']>, public readonly requestID: string, public thrownBy?: unknown) {
         super(`${data.message} (Error Code: ${data.errorID} ${ErrorCode[data.errorID] ?? ErrorCode.Unknown}) (Request ID: ${requestID})`)
         this.name = this.constructor.name
         Object.setPrototypeOf(this, new.target.prototype)
