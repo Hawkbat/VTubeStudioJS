@@ -67,7 +67,7 @@ export enum ErrorCode {
 
     // ParameterCreation
     CustomParamNameInvalid = 350,
-    CustomparamValuesInvalid = 351,
+    CustomParamValuesInvalid = 351,
     CustomParamAlreadyCreatedByOtherPlugin = 352,
     CustomParamExplanationTooLong = 353,
     CustomParamDefaultParamNameNotAllowed = 354,
