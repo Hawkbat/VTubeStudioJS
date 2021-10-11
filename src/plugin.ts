@@ -145,7 +145,7 @@ export class Plugin {
     }
 
     private async checkApiState(): Promise<void> {
-        if (this.isApiEnabled === null) {
+        if (this.isApiEnabled !== true) {
             const { active, currentSessionAuthenticated } = await this.apiClient.apiState()
             this.isApiEnabled = active
             if (currentSessionAuthenticated) this.isAuthenticated = true
@@ -154,7 +154,7 @@ export class Plugin {
     }
 
     private async authenticate(): Promise<void> {
-        if (this.isAuthenticated === null && this.isAuthenticating !== true) {
+        if (this.isAuthenticated !== true && this.isAuthenticating !== true) {
             this.isAuthenticating = true
             try {
                 if (this.authenticationToken !== undefined) {
