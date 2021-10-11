@@ -202,7 +202,7 @@ interface ParameterDeletionEndpoint extends IApiEndpoint<'ParameterDeletion', {
 interface InjectParameterDataEndpoint extends IApiEndpoint<'InjectParameterData', {
     parameterValues: {
         id: string
-        weight: number
+        weight?: number
         value: number
     }[]
 }, {
