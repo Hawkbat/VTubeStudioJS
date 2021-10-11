@@ -103,6 +103,7 @@ export enum HotkeyType {
     CalibrateCam = 8,
     ChangeVTSModel = 9,
     TakeScreenshot = 10,
+    ScreenColorOverlay = 11,
 }
 
 export interface BaseParameter {
