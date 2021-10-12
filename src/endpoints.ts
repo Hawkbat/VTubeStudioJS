@@ -141,6 +141,7 @@ interface ColorTintEndpoint extends IApiEndpoint<'ColorTint', {
         colorG: number
         colorB: number
         colorA: number
+        mixWithSceneLightingColor?: number
     }
     artMeshMatcher: {
         tintAll: boolean
@@ -152,6 +153,41 @@ interface ColorTintEndpoint extends IApiEndpoint<'ColorTint', {
     }
 }, {
     matchedArtMeshes: number
+}> { }
+
+interface SceneColorOverlayInfoEndpoint extends IApiEndpoint<'SceneColorOverlayInfo', {
+
+}, {
+    active: boolean
+    itemsIncluded: boolean
+    isWindowCapture: boolean
+    baseBrightness: number
+    colorBoost: number
+    smoothing: number
+    colorOverlayR: number
+    colorOverlayG: number
+    colorOverlayB: number
+    colorAvgR: number
+    colorAvgG: number
+    colorAvgB: number
+    leftCapturePart: {
+        active: boolean
+        colorR: number
+        colorG: number
+        colorB: number
+    }
+    middleCapturePart: {
+        active: boolean
+        colorR: number
+        colorG: number
+        colorB: number
+    }
+    rightCapturePart: {
+        active: boolean
+        colorR: number
+        colorG: number
+        colorB: number
+    }
 }> { }
 
 interface FaceFoundEndpoint extends IApiEndpoint<'FaceFound', {
@@ -225,6 +261,7 @@ export class ApiClient {
     hotkeyTrigger = createClientCall<HotkeyTriggerEndpoint>(this.bus, 'HotkeyTrigger')
     artMeshList = createClientCall<ArtMeshListEndpoint>(this.bus, 'ArtMeshList')
     colorTint = createClientCall<ColorTintEndpoint>(this.bus, 'ColorTint')
+    sceneColorOverlayInfo = createClientCall<SceneColorOverlayInfoEndpoint>(this.bus, 'SceneColorOverlayInfo')
     faceFound = createClientCall<FaceFoundEndpoint>(this.bus, 'FaceFound')
     inputParameterList = createClientCall<InputParameterListEndpoint>(this.bus, 'InputParameterList')
     parameterValue = createClientCall<ParameterValueEndpoint>(this.bus, 'ParameterValue')
@@ -254,6 +291,7 @@ export class MockApiServer implements ApiShape {
     hotkeyTrigger = createServerCall<HotkeyTriggerEndpoint>(this.bus, 'HotkeyTrigger', async ({ hotkeyID }) => ({ hotkeyID }))
     artMeshList = createServerCall<ArtMeshListEndpoint>(this.bus, 'ArtMeshList', async () => ({ modelLoaded: true, numberOfArtMeshNames: 0, numberOfArtMeshTags: 0, artMeshNames: [], artMeshTags: [] }))
     colorTint = createServerCall<ColorTintEndpoint>(this.bus, 'ColorTint', async () => ({ matchedArtMeshes: 0 }))
+    sceneColorOverlayInfo = createServerCall<SceneColorOverlayInfoEndpoint>(this.bus, 'SceneColorOverlayInfo', async () => ({ active: true, itemsIncluded: true, isWindowCapture: false, baseBrightness: 16, colorBoost: 35, smoothing: 6, colorOverlayR: 206, colorOverlayG: 150, colorOverlayB: 153, colorAvgR: 237, colorAvgG: 157, colorAvgB: 162, leftCapturePart: { active: true, colorR: 243, colorG: 231, colorB: 234 }, middleCapturePart: { active: true, colorR: 230, colorG: 83, colorB: 89 }, rightCapturePart: { active: false, colorR: 235, colorG: 95, colorB: 101 } }))
     faceFound = createServerCall<FaceFoundEndpoint>(this.bus, 'FaceFound', async () => ({ found: true }))
     inputParameterList = createServerCall<InputParameterListEndpoint>(this.bus, 'InputParameterList', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', customParameters: [], defaultParameters: [] }))
     parameterValue = createServerCall<ParameterValueEndpoint>(this.bus, 'ParameterValue', async () => ({ name: 'Param', addedBy: '', min: 0, max: 0, value: 0, defaultValue: 0 }))
