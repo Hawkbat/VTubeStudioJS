@@ -274,4 +274,39 @@ export class Plugin {
     async isFaceFound(): Promise<boolean> {
         return (await this.apiClient.faceFound()).found
     }
+
+    async sceneColorOverlayInfo(): Promise<{
+        active: boolean
+        itemsIncluded: boolean
+        isWindowCapture: boolean
+        baseBrightness: number
+        colorBoost: number
+        smoothing: number
+        colorOverlayR: number
+        colorOverlayG: number
+        colorOverlayB: number
+        colorAvgR: number
+        colorAvgG: number
+        colorAvgB: number
+        leftCapturePart: {
+            active: boolean
+            colorR: number
+            colorG: number
+            colorB: number
+        }
+        middleCapturePart: {
+            active: boolean
+            colorR: number
+            colorG: number
+            colorB: number
+        }
+        rightCapturePart: {
+            active: boolean
+            colorR: number
+            colorG: number
+            colorB: number
+        }
+    }> {
+        return await this.apiClient.sceneColorOverlayInfo()
+    }
 }
