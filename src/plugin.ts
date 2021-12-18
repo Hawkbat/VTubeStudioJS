@@ -105,9 +105,9 @@ class CurrentModel {
         return artMeshTags
     }
 
-    async colorTint(color: { r: number, g: number, b: number, a?: number }, match?: { artMeshNumber?: number[], nameExact?: string[], nameContains?: string[], tagExact?: string[], tagContains?: string[] }): Promise<void> {
+    async colorTint(color: { r: number, g: number, b: number, a?: number, mixWithSceneLightingColor?: number }, match?: { artMeshNumber?: number[], nameExact?: string[], nameContains?: string[], tagExact?: string[], tagContains?: string[] }): Promise<void> {
         await this.vts.apiClient.colorTint({
-            colorTint: { colorR: color.r, colorG: color.g, colorB: color.b, colorA: color.a ?? 255 },
+            colorTint: { colorR: color.r, colorG: color.g, colorB: color.b, colorA: color.a ?? 255, mixWithSceneLightingColor: color.mixWithSceneLightingColor },
             artMeshMatcher: { tintAll: !match, ...match }
         })
     }
