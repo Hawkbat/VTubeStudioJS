@@ -1,3 +1,4 @@
+import { filterFalsy } from 'src'
 import type { ApiClient } from './endpoints'
 import { VTubeStudioError, ErrorCode } from './types'
 
@@ -33,6 +34,42 @@ class CustomParameter extends Parameter {
 
     async delete(): Promise<void> {
         await this.vts.apiClient.parameterDeletion({ parameterName: this.name })
+    }
+}
+
+class Expression {
+    constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly name: string, public readonly file: string, public active: boolean, public deactivateWhenKeyIsLetGo: boolean, public autoDeactivateAfterSeconds: boolean, public secondsRemaining: boolean, private usedInHotkeys: { name: string, id: string }[], private parameters: { id: string, target: number }[]) { }
+
+    async refresh(): Promise<Expression> {
+        const { expressions } = await this.vts.apiClient.expressionState({ details: true, expressionFile: this.file })
+        const expr = expressions.find(e => e.file === this.file)
+        if (expr) {
+            this.active = expr.active
+            this.deactivateWhenKeyIsLetGo = expr.deactivateWhenKeyIsLetGo
+            this.autoDeactivateAfterSeconds = expr.autoDeactivateAfterSeconds
+            this.secondsRemaining = expr.secondsRemaining
+            this.usedInHotkeys = expr.usedInHotkeys
+            this.parameters = expr.parameters
+        }
+        return this
+    }
+
+    async activate(): Promise<void> {
+        await this.vts.apiClient.expressionActivation({ expressionFile: this.file, active: true })
+    }
+
+    async deactivate(): Promise<void> {
+        await this.vts.apiClient.expressionActivation({ expressionFile: this.file, active: true })
+    }
+
+    async hotkeys(): Promise<Hotkey[]> {
+        const hotkeys = await this.model.hotkeys()
+        return this.usedInHotkeys.map(h => hotkeys.find(hk => hk.id === h.id)).filter(filterFalsy)
+    }
+
+    async live2DParameters(): Promise<Parameter[]> {
+        const params = await this.model.live2DParameters()
+        return this.parameters.map(p => params.find(pm => pm.name === p.id)).filter(filterFalsy)
     }
 }
 
@@ -88,6 +125,11 @@ class CurrentModel {
             rotation: to.rotation,
             size: to.size,
         })
+    }
+
+    async expressions(): Promise<Expression[]> {
+        const { expressions } = await this.vts.apiClient.expressionState({ details: true })
+        return expressions.map(e => new Expression(this.vts, this, e.name, e.file, e.active, e.deactivateWhenKeyIsLetGo, e.autoDeactivateAfterSeconds, e.secondsRemaining, e.usedInHotkeys, e.parameters))
     }
 
     async hotkeys(): Promise<Hotkey[]> {
@@ -308,5 +350,34 @@ export class Plugin {
         }
     }> {
         return await this.apiClient.sceneColorOverlayInfo()
+    }
+
+    async ndiConfig(): Promise<{
+        ndiActive: boolean
+        useNDI5: boolean
+        useCustomResolution: boolean
+        customWidthNDI: number
+        customHeightNDI: number
+    }> {
+        const { ndiActive, useNDI5, useCustomResolution, customWidthNDI, customHeightNDI } = await this.apiClient.ndiConfig({
+            setNewConfig: false,
+            ndiActive: false,
+            useNDI5: false,
+            useCustomResolution: false,
+            customWidthNDI: -1,
+            customHeightNDI: -1,
+        })
+        return { ndiActive, useNDI5, useCustomResolution, customWidthNDI, customHeightNDI }
+    }
+
+    async updateNDIConfig(ndiActive: boolean, useNDI5: boolean, useCustomResolution: boolean, customWidthNDI: number = -1, customHeightNDI: number = -1): Promise<void> {
+        await this.apiClient.ndiConfig({
+            setNewConfig: true,
+            ndiActive,
+            useNDI5,
+            useCustomResolution,
+            customWidthNDI,
+            customHeightNDI,
+        })
     }
 }

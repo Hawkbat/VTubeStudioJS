@@ -8,3 +8,8 @@ export function generateID(length: number): string {
     }
     return id
 }
+
+/** @internal */
+export function filterFalsy<T>(value: T | null | undefined): value is T {
+    return !!value
+}
