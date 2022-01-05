@@ -88,6 +88,19 @@ export enum ErrorCode {
 
     // ParameterValue
     ParameterValueRequestParameterNotFound = 500,
+
+    // NDIConfig
+    NDIConfigCooldownNotOver = 550,
+    NDIConfigResolutionInvalid = 551,
+
+    // ExpressionState
+    ExpressionStateRequestInvalidFilename = 600,
+    ExpressionStateRequestFileNotFound = 601,
+
+    // ExpressionActivation
+    ExpressionActivationRequestInvalidFilename = 650,
+    ExpressionActivationRequestFileNotFound = 651,
+    ExpressionActivationRequestNoModelLoaded = 652,
 }
 
 export enum HotkeyType {
@@ -104,6 +117,8 @@ export enum HotkeyType {
     ChangeVTSModel = 9,
     TakeScreenshot = 10,
     ScreenColorOverlay = 11,
+    RemoveAllItems = 12,
+    ToggleItemScene = 13,
 }
 
 export interface BaseParameter {
