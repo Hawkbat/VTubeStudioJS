@@ -114,6 +114,7 @@ interface HotkeysInCurrentModelEndpoint extends IApiEndpoint<'HotkeysInCurrentMo
     availableHotkeys: {
         name: string
         type: keyof typeof HotkeyType
+        description: string
         file: string
         hotkeyID: string
     }[]
@@ -123,6 +124,38 @@ interface HotkeyTriggerEndpoint extends IApiEndpoint<'HotkeyTrigger', {
     hotkeyID: string
 }, {
     hotkeyID: string
+}> { }
+
+interface ExpressionStateEndpoint extends IApiEndpoint<'ExpressionState', {
+    details: boolean
+    expressionFile?: string
+}, {
+    modelLoaded: boolean
+    modelName: string
+    modelID: string
+    expressions: {
+        name: string
+        file: string
+        active: boolean
+        deactivateWhenKeyIsLetGo: boolean
+        autoDeactivateAfterSeconds: boolean
+        secondsRemaining: boolean
+        usedInHotkeys: {
+            name: string
+            id: string
+        }[]
+        parameters: {
+            id: string
+            target: number
+        }[]
+    }[]
+}> { }
+
+interface ExpressionActivationRequest extends IApiEndpoint<'ExpressionActivation', {
+    expressionFile: string
+    active: boolean
+}, {
+
 }> { }
 
 interface ArtMeshListEndpoint extends IApiEndpoint<'ArtMeshList', {
@@ -142,6 +175,7 @@ interface ColorTintEndpoint extends IApiEndpoint<'ColorTint', {
         colorB: number
         colorA: number
         mixWithSceneLightingColor?: number
+        jeb_?: true
     }
     artMeshMatcher: {
         tintAll: boolean
@@ -245,6 +279,22 @@ interface InjectParameterDataEndpoint extends IApiEndpoint<'InjectParameterData'
 
 }> { }
 
+interface NDIConfigEndpoint extends IApiEndpoint<'NDIConfig', {
+    setNewConfig: boolean
+    ndiActive: boolean
+    useNDI5: boolean
+    useCustomResolution: boolean
+    customWidthNDI: number
+    customHeightNDI: number
+}, {
+    setNewConfig: boolean
+    ndiActive: boolean
+    useNDI5: boolean
+    useCustomResolution: boolean
+    customWidthNDI: number
+    customHeightNDI: number
+}> { }
+
 export class ApiClient {
     constructor(private bus: IMessageBus) { }
 
@@ -259,6 +309,8 @@ export class ApiClient {
     moveModel = createClientCall<MoveModelEndpoint>(this.bus, 'MoveModel')
     hotkeysInCurrentModel = createClientCall<HotkeysInCurrentModelEndpoint>(this.bus, 'HotkeysInCurrentModel')
     hotkeyTrigger = createClientCall<HotkeyTriggerEndpoint>(this.bus, 'HotkeyTrigger')
+    expressionState = createClientCall<ExpressionStateEndpoint>(this.bus, 'ExpressionState')
+    expressionActivation = createClientCall<ExpressionActivationRequest>(this.bus, 'ExpressionActivation')
     artMeshList = createClientCall<ArtMeshListEndpoint>(this.bus, 'ArtMeshList')
     colorTint = createClientCall<ColorTintEndpoint>(this.bus, 'ColorTint')
     sceneColorOverlayInfo = createClientCall<SceneColorOverlayInfoEndpoint>(this.bus, 'SceneColorOverlayInfo')
@@ -269,6 +321,7 @@ export class ApiClient {
     parameterCreation = createClientCall<ParameterCreationEndpoint>(this.bus, 'ParameterCreation')
     parameterDeletion = createClientCall<ParameterDeletionEndpoint>(this.bus, 'ParameterDeletion')
     injectParameterData = createClientCall<InjectParameterDataEndpoint>(this.bus, 'InjectParameterData')
+    ndiConfig = createClientCall<NDIConfigEndpoint>(this.bus, 'NDIConfig')
 }
 
 type ApiShape = {
@@ -289,6 +342,8 @@ export class MockApiServer implements ApiShape {
     modelLoad = createServerCall<ModelLoadEndpoint>(this.bus, 'ModelLoad', async ({ modelID }) => ({ modelID }))
     hotkeysInCurrentModel = createServerCall<HotkeysInCurrentModelEndpoint>(this.bus, 'HotkeysInCurrentModel', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', availableHotkeys: [] }))
     hotkeyTrigger = createServerCall<HotkeyTriggerEndpoint>(this.bus, 'HotkeyTrigger', async ({ hotkeyID }) => ({ hotkeyID }))
+    expressionState = createServerCall<ExpressionStateEndpoint>(this.bus, 'ExpressionState', async () => ({ modelLoaded: true, modelID: 'FAKE_MODEL', modelName: 'Fake Model', expressions: [] }))
+    expressionActivation = createServerCall<ExpressionActivationRequest>(this.bus, 'ExpressionActivation', async () => { })
     artMeshList = createServerCall<ArtMeshListEndpoint>(this.bus, 'ArtMeshList', async () => ({ modelLoaded: true, numberOfArtMeshNames: 0, numberOfArtMeshTags: 0, artMeshNames: [], artMeshTags: [] }))
     colorTint = createServerCall<ColorTintEndpoint>(this.bus, 'ColorTint', async () => ({ matchedArtMeshes: 0 }))
     sceneColorOverlayInfo = createServerCall<SceneColorOverlayInfoEndpoint>(this.bus, 'SceneColorOverlayInfo', async () => ({ active: true, itemsIncluded: true, isWindowCapture: false, baseBrightness: 16, colorBoost: 35, smoothing: 6, colorOverlayR: 206, colorOverlayG: 150, colorOverlayB: 153, colorAvgR: 237, colorAvgG: 157, colorAvgB: 162, leftCapturePart: { active: true, colorR: 243, colorG: 231, colorB: 234 }, middleCapturePart: { active: true, colorR: 230, colorG: 83, colorB: 89 }, rightCapturePart: { active: false, colorR: 235, colorG: 95, colorB: 101 } }))
@@ -299,4 +354,5 @@ export class MockApiServer implements ApiShape {
     parameterCreation = createServerCall<ParameterCreationEndpoint>(this.bus, 'ParameterCreation', async ({ parameterName }) => ({ parameterName }))
     parameterDeletion = createServerCall<ParameterDeletionEndpoint>(this.bus, 'ParameterDeletion', async ({ parameterName }) => ({ parameterName }))
     injectParameterData = createServerCall<InjectParameterDataEndpoint>(this.bus, 'InjectParameterData', async () => { })
+    ndiConfig = createServerCall<NDIConfigEndpoint>(this.bus, 'NDIConfig', async (args) => args)
 }
