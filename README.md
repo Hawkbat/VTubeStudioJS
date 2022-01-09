@@ -47,6 +47,12 @@ console.log("VTube Studio verison:", stats.vTubeStudioVersion);
 
 > See the official [VTube Studio API documentation](https://github.com/DenchiSoft/VTubeStudio) for more details on what calls are available and what each field means.
 
+An additional options object may be passed as the second parameter to control the execution of the API call. For example, to change the default timeout to 1 minute:
+
+```javascript
+const stats = await apiClient.statistics({}, { timeout: 60000 });
+```
+
 ### Plugin Wrapper
 
 This library also provides a high-level, object-oriented wrapper for VTube Studio plugins which automatically handles the authentication workflow for you:
