@@ -1,5 +1,6 @@
 import { createClientCall, createServerCall, IMessageBus } from './api'
 import type { IApiEndpoint, IVTSParameter, ILive2DParameter, HotkeyType } from './types'
+import { wait } from './utils'
 
 interface APIStateEndpoint extends IApiEndpoint<'APIState', {
 
@@ -332,7 +333,10 @@ export class MockApiServer implements ApiShape {
     constructor(private bus: IMessageBus) { }
 
     apiState = createServerCall<APIStateEndpoint>(this.bus, 'APIState', async () => ({ active: true, vTubeStudioVersion: '1.9.0', currentSessionAuthenticated: true }))
-    authenticationToken = createServerCall<AuthenticationTokenEndpoint>(this.bus, 'AuthenticationToken', async () => ({ authenticationToken: 'MOCK_VTUBE_STUDIO_API' }))
+    authenticationToken = createServerCall<AuthenticationTokenEndpoint>(this.bus, 'AuthenticationToken', async () => {
+        await wait(5000 + Math.random() * 10000)
+        return { authenticationToken: 'MOCK_VTUBE_STUDIO_API' }
+    })
     authentication = createServerCall<AuthenticationEndpoint>(this.bus, 'Authentication', async () => ({ authenticated: true, reason: '' }))
     statistics = createServerCall<StatisticsEndpoint>(this.bus, 'Statistics', async () => ({ vTubeStudioVersion: '1.9.0', allowedPlugins: 1, connectedPlugins: 1, framerate: 30, uptime: 0, startedWithSteam: false, windowWidth: 1920, windowHeight: 1080, windowIsFullscreen: true }))
     vtsFolderInfo = createServerCall<VTSFolderInfoEndpoint>(this.bus, 'VTSFolderInfo', async () => ({ models: '', backgrounds: '', items: '', config: '', logs: '', backup: '' }))
