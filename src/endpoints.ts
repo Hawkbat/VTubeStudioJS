@@ -299,7 +299,7 @@ export class ApiClient {
     constructor(private bus: IMessageBus) { }
 
     apiState = createClientCall<APIStateEndpoint>(this.bus, 'APIState')
-    authenticationToken = createClientCall<AuthenticationTokenEndpoint>(this.bus, 'AuthenticationToken')
+    authenticationToken = createClientCall<AuthenticationTokenEndpoint>(this.bus, 'AuthenticationToken', 5 * 60 * 1000)
     authentication = createClientCall<AuthenticationEndpoint>(this.bus, 'Authentication')
     statistics = createClientCall<StatisticsEndpoint>(this.bus, 'Statistics')
     vtsFolderInfo = createClientCall<VTSFolderInfoEndpoint>(this.bus, 'VTSFolderInfo')

@@ -4,11 +4,11 @@ import { IApiEndpoint, IApiMessage, IApiError, VTubeStudioError, ErrorCode } fro
 type EndpointCall<T extends IApiEndpoint<any, any, any>> = T extends IApiEndpoint<infer _, infer Request, infer Response> ?
     ({} extends Request ?
         ({} extends Response ?
-            () => Promise<void> :
-            () => Promise<Response>) :
+            (data: void, config?: IClientCallConfig) => Promise<void> :
+            (data: void, config?: IClientCallConfig) => Promise<Response>) :
         ({} extends Response ?
-            (data: Request) => Promise<void> :
-            (data: Request) => Promise<Response>)) :
+            (data: Request, config?: IClientCallConfig) => Promise<void> :
+            (data: Request, config?: IClientCallConfig) => Promise<Response>)) :
     never
 
 interface MessageHandler<T extends IApiMessage<any, any> = IApiMessage<any, any>> {
@@ -64,9 +64,14 @@ function msgIsError(msg: IApiMessage<any, any>): msg is IApiError {
     return msg.messageType === 'APIError'
 }
 
+export interface IClientCallConfig {
+    /** Controls the number of milliseconds allowed to elapse without a response before the API considers the call to have failed. */
+    timeout?: number
+}
+
 /** @internal */
-export function createClientCall<T extends IApiEndpoint<any, any, any>>(bus: IMessageBus, type: T['Type']): EndpointCall<T> {
-    return ((data: T['Request']['data']) => new Promise<T['Response']['data']>((resolve, reject) => {
+export function createClientCall<T extends IApiEndpoint<any, any, any>>(bus: IMessageBus, type: T['Type'], defaultTimeout: number = 5000): EndpointCall<T> {
+    return ((data: T['Request']['data'], config?: IClientCallConfig) => new Promise<T['Response']['data']>((resolve, reject) => {
         const requestID = generateID(16)
         const handler: MessageHandler = msg => {
             if (msg.requestID === requestID) {
@@ -82,7 +87,7 @@ export function createClientCall<T extends IApiEndpoint<any, any, any>>(bus: IMe
             timeout: setTimeout(() => {
                 bus.off(handler)
                 reject(new VTubeStudioError({ errorID: ErrorCode.InternalClientError, message: 'The request timed out.' }, requestID))
-            }, 5000),
+            }, config?.timeout ?? defaultTimeout),
             reject,
             requestID,
         }
