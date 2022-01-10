@@ -1,4 +1,4 @@
-import { filterFalsy } from 'src'
+import { filterFalsy } from './utils'
 import type { ApiClient } from './endpoints'
 import { VTubeStudioError, ErrorCode } from './types'
 
