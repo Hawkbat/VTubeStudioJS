@@ -280,6 +280,45 @@ interface InjectParameterDataEndpoint extends IApiEndpoint<'InjectParameterData'
 
 }> { }
 
+interface GetCurrentModelPhysicsEndpoint extends IApiEndpoint<'GetCurrentModelPhysics', {
+
+}, {
+    modelLoaded: boolean
+    modelName: string
+    modelID: string
+    modelHasPhysics: boolean
+    physicsSwitchedOn: boolean
+    usingLegacyPhysics: boolean
+    physicsFPSSetting: 30 | 60 | 120 | -1
+    baseStrength: number
+    baseWind: number
+    apiPhysicsOverrideActive: boolean
+    apiPhysicsOverridePluginName: string
+    physicsGroups: {
+        groupID: string
+        groupName: string
+        strengthMultiplier: number
+        windMultiplier: number
+    }[]
+}> { }
+
+interface SetCurrentModelPhysicsEndpoint extends IApiEndpoint<'SetCurrentModelPhysics', {
+    strengthOverrides: {
+        id: string
+        value: number
+        setBaseValue: boolean
+        overrideSeconds: number
+    }[]
+    windOverrides: {
+        id: string
+        value: number
+        setBaseValue: boolean
+        overrideSeconds: number
+    }[]
+}, {
+
+}> { }
+
 interface NDIConfigEndpoint extends IApiEndpoint<'NDIConfig', {
     setNewConfig: boolean
     ndiActive: boolean
@@ -322,6 +361,8 @@ export class ApiClient {
     parameterCreation = createClientCall<ParameterCreationEndpoint>(this.bus, 'ParameterCreation')
     parameterDeletion = createClientCall<ParameterDeletionEndpoint>(this.bus, 'ParameterDeletion')
     injectParameterData = createClientCall<InjectParameterDataEndpoint>(this.bus, 'InjectParameterData')
+    getCurrentModelPhysics = createClientCall<GetCurrentModelPhysicsEndpoint>(this.bus, 'GetCurrentModelPhysics')
+    setCurrentModelPhysics = createClientCall<SetCurrentModelPhysicsEndpoint>(this.bus, 'SetCurrentModelPhysics')
     ndiConfig = createClientCall<NDIConfigEndpoint>(this.bus, 'NDIConfig')
 }
 
@@ -358,5 +399,7 @@ export class MockApiServer implements ApiShape {
     parameterCreation = createServerCall<ParameterCreationEndpoint>(this.bus, 'ParameterCreation', async ({ parameterName }) => ({ parameterName }))
     parameterDeletion = createServerCall<ParameterDeletionEndpoint>(this.bus, 'ParameterDeletion', async ({ parameterName }) => ({ parameterName }))
     injectParameterData = createServerCall<InjectParameterDataEndpoint>(this.bus, 'InjectParameterData', async () => { })
+    getCurrentModelPhysics = createServerCall<GetCurrentModelPhysicsEndpoint>(this.bus, 'GetCurrentModelPhysics', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', modelHasPhysics: true, physicsSwitchedOn: true, usingLegacyPhysics: false, physicsFPSSetting: -1, baseStrength: 50, baseWind: 17, apiPhysicsOverrideActive: false, apiPhysicsOverridePluginName: '', physicsGroups: [] }))
+    setCurrentModelPhysics = createServerCall<SetCurrentModelPhysicsEndpoint>(this.bus, 'SetCurrentModelPhysics', async () => { })
     ndiConfig = createServerCall<NDIConfigEndpoint>(this.bus, 'NDIConfig', async (args) => args)
 }

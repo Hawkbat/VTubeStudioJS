@@ -101,6 +101,15 @@ export enum ErrorCode {
     ExpressionActivationRequestInvalidFilename = 650,
     ExpressionActivationRequestFileNotFound = 651,
     ExpressionActivationRequestNoModelLoaded = 652,
+
+    // SetCurrentModelPhysics
+    SetCurrentModelPhysicsRequestNoModelLoaded = 700,
+    SetCurrentModelPhysicsRequestModelHasNoPhysics = 701,
+    SetCurrentModelPhysicsRequestPhysicsControlledByOtherPlugin = 702, 
+    SetCurrentModelPhysicsRequestNoOverridesProvided = 703,
+    SetCurrentModelPhysicsRequestPhysicsGroupIDNotFound = 704,
+    SetCurrentModelPhysicsRequestNoOverrideValueProvided = 705,
+    SetCurrentModelPhysicsRequestDuplicatePhysicsGroupID = 706,
 }
 
 export enum HotkeyType {
