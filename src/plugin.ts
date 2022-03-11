@@ -74,7 +74,7 @@ class Expression {
 }
 
 class Hotkey {
-    constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly id: string, public readonly type: string, public readonly name: string, public readonly file: string) { }
+    constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly id: string, public readonly type: string, public readonly name: string, public readonly file: string, public readonly description: string) { }
 
     async trigger(): Promise<void> {
         await this.vts.apiClient.hotkeyTrigger({ hotkeyID: this.id })
@@ -134,7 +134,7 @@ class CurrentModel {
 
     async hotkeys(): Promise<Hotkey[]> {
         const { availableHotkeys } = await this.vts.apiClient.hotkeysInCurrentModel()
-        return availableHotkeys.map(k => new Hotkey(this.vts, this, k.hotkeyID, k.type, k.name, k.file))
+        return availableHotkeys.map(k => new Hotkey(this.vts, this, k.hotkeyID, k.type, k.name, k.file, k.description))
     }
 
     async artMeshNames(): Promise<string[]> {
