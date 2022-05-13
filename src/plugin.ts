@@ -2,7 +2,8 @@ import { filterFalsy } from './utils'
 import type { ApiClient } from './endpoints'
 import { VTubeStudioError, ErrorCode } from './types'
 
-class Parameter {
+/** Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! */
+export class Parameter {
     constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly name: string, public value: number, public min: number, public max: number, public defaultValue: number) { }
 
     async refresh(): Promise<Parameter> {
@@ -21,7 +22,8 @@ class Parameter {
     }
 }
 
-class CustomParameter extends Parameter {
+/** Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! */
+export class CustomParameter extends Parameter {
     constructor(vts: Plugin, model: CurrentModel, name: string, value: number, min: number, max: number, defaultValue: number, public readonly explanation: string) { super(vts, model, name, value, min, max, defaultValue) }
 
     async update({ min, max, defaultValue }: Partial<{ min: number, max: number, defaultValue: number }>): Promise<Parameter> {
@@ -37,7 +39,8 @@ class CustomParameter extends Parameter {
     }
 }
 
-class Expression {
+/** Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! */
+export class Expression {
     constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly name: string, public readonly file: string, public active: boolean, public deactivateWhenKeyIsLetGo: boolean, public autoDeactivateAfterSeconds: boolean, public secondsRemaining: boolean, private usedInHotkeys: { name: string, id: string }[], private parameters: { id: string, target: number }[]) { }
 
     async refresh(): Promise<Expression> {
@@ -73,7 +76,8 @@ class Expression {
     }
 }
 
-class Hotkey {
+/** Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! */
+export class Hotkey {
     constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly id: string, public readonly type: string, public readonly name: string, public readonly file: string, public readonly description: string) { }
 
     async trigger(): Promise<void> {
@@ -81,7 +85,8 @@ class Hotkey {
     }
 }
 
-class Model {
+/** Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! */
+export class Model {
     constructor(protected vts: Plugin, public readonly id: string, public readonly name: string, public readonly vtsModelName: string, public readonly vtsModelIconName: string) { }
 
     async load(): Promise<CurrentModel> {
@@ -90,7 +95,8 @@ class Model {
     }
 }
 
-class CurrentModel {
+/** Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! */
+export class CurrentModel {
     constructor(protected vts: Plugin, public readonly id: string, public readonly name: string, public readonly vtsModelName: string, public readonly live2DModelName: string, public readonly modelLoadTime: number, public readonly timeSinceModelLoaded: number, public readonly numberOfLive2DParameters: number, public readonly numberOfLive2DArtmeshes: number, public readonly hasPhysicsFile: boolean, public readonly numberOfTextures: number, public readonly textureResolution: number, public readonly positionX: number, public readonly positionY: number, public readonly rotation: number, public readonly size: number) { }
 
     async refresh(): Promise<CurrentModel | null> {
