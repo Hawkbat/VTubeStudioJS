@@ -62,7 +62,7 @@ export class Expression {
     }
 
     async deactivate(): Promise<void> {
-        await this.vts.apiClient.expressionActivation({ expressionFile: this.file, active: true })
+        await this.vts.apiClient.expressionActivation({ expressionFile: this.file, active: false })
     }
 
     async hotkeys(): Promise<Hotkey[]> {
