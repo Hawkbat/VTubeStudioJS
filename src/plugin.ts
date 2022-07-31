@@ -2,7 +2,10 @@ import { filterFalsy } from './utils'
 import type { ApiClient } from './endpoints'
 import { VTubeStudioError, ErrorCode } from './types'
 
-/** Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! */
+/**
+ * Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! 
+ * @deprecated The object-oriented plugin wrapper is deprecated and will be removed in a future release. Use {@link ApiClient} directly instead.
+ **/
 export class Parameter {
     constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly name: string, public value: number, public min: number, public max: number, public defaultValue: number) { }
 
@@ -15,14 +18,17 @@ export class Parameter {
         return this
     }
 
-    async setValue(value: number, weight: number = 1): Promise<Parameter> {
-        await this.vts.apiClient.injectParameterData({ parameterValues: [{ id: this.name, weight, value }] })
+    async setValue(value: number, weight: number = 1, mode: 'add' | 'set' = 'set'): Promise<Parameter> {
+        await this.vts.apiClient.injectParameterData({ parameterValues: [{ id: this.name, weight, value }], faceFound: false, mode })
         this.value = value
         return this
     }
 }
 
-/** Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! */
+/**
+ * Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! 
+ * @deprecated The object-oriented plugin wrapper is deprecated and will be removed in a future release. Use {@link ApiClient} directly instead.
+ **/
 export class CustomParameter extends Parameter {
     constructor(vts: Plugin, model: CurrentModel, name: string, value: number, min: number, max: number, defaultValue: number, public readonly explanation: string) { super(vts, model, name, value, min, max, defaultValue) }
 
@@ -39,9 +45,12 @@ export class CustomParameter extends Parameter {
     }
 }
 
-/** Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! */
+/**
+ * Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! 
+ * @deprecated The object-oriented plugin wrapper is deprecated and will be removed in a future release. Use {@link ApiClient} directly instead.
+ **/
 export class Expression {
-    constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly name: string, public readonly file: string, public active: boolean, public deactivateWhenKeyIsLetGo: boolean, public autoDeactivateAfterSeconds: boolean, public secondsRemaining: boolean, private usedInHotkeys: { name: string, id: string }[], private parameters: { id: string, target: number }[]) { }
+    constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly name: string, public readonly file: string, public active: boolean, public deactivateWhenKeyIsLetGo: boolean, public autoDeactivateAfterSeconds: boolean, public secondsRemaining: boolean, private usedInHotkeys: { name: string, id: string }[], private parameters: { name: string, value: number }[]) { }
 
     async refresh(): Promise<Expression> {
         const { expressions } = await this.vts.apiClient.expressionState({ details: true, expressionFile: this.file })
@@ -72,11 +81,14 @@ export class Expression {
 
     async live2DParameters(): Promise<Parameter[]> {
         const params = await this.model.live2DParameters()
-        return this.parameters.map(p => params.find(pm => pm.name === p.id)).filter(filterFalsy)
+        return this.parameters.map(p => params.find(pm => pm.name === p.name)).filter(filterFalsy)
     }
 }
 
-/** Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! */
+/**
+ * Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! 
+ * @deprecated The object-oriented plugin wrapper is deprecated and will be removed in a future release. Use {@link ApiClient} directly instead.
+ **/
 export class Hotkey {
     constructor(protected vts: Plugin, public readonly model: CurrentModel, public readonly id: string, public readonly type: string, public readonly name: string, public readonly file: string, public readonly description: string) { }
 
@@ -85,7 +97,10 @@ export class Hotkey {
     }
 }
 
-/** Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! */
+/**
+ * Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! 
+ * @deprecated The object-oriented plugin wrapper is deprecated and will be removed in a future release. Use {@link ApiClient} directly instead.
+ **/
 export class Model {
     constructor(protected vts: Plugin, public readonly id: string, public readonly name: string, public readonly vtsModelName: string, public readonly vtsModelIconName: string) { }
 
@@ -95,7 +110,10 @@ export class Model {
     }
 }
 
-/** Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! */
+/**
+ * Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! 
+ * @deprecated The object-oriented plugin wrapper is deprecated and will be removed in a future release. Use {@link ApiClient} directly instead.
+ **/
 export class CurrentModel {
     constructor(protected vts: Plugin, public readonly id: string, public readonly name: string, public readonly vtsModelName: string, public readonly live2DModelName: string, public readonly modelLoadTime: number, public readonly timeSinceModelLoaded: number, public readonly numberOfLive2DParameters: number, public readonly numberOfLive2DArtmeshes: number, public readonly hasPhysicsFile: boolean, public readonly numberOfTextures: number, public readonly textureResolution: number, public readonly positionX: number, public readonly positionY: number, public readonly rotation: number, public readonly size: number) { }
 
@@ -181,6 +199,10 @@ export class CurrentModel {
     }
 }
 
+/**
+ * Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! 
+ * @deprecated The object-oriented plugin wrapper is deprecated and will be removed in a future release. Use {@link ApiClient} directly instead.
+ **/
 export class Plugin {
     public apiClient: ApiClient
     protected isApiEnabled: boolean | null = null

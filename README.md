@@ -19,96 +19,80 @@ This package has no runtime dependencies. To avoid node_modules bloat, use `npm 
 
 ### Basic Usage
 
-This library is platform-agnostic, allowing it to be used for both Node projects and for browsers via tools like webpack. Since it cannot rely on there being an existing WebSocket implementation, you must provide an intermediate object, a 'message bus', that acts as a platform-agnostic proxy for the API to communicate with. In almost all cases, the provided `WebSocketBus` should cover your needs.
-
-```javascript
-import { WebSocketBus } from "vtubestudio";
-
-// A websocket-like object, such as the one provided by the browser or a Node package like 'ws'
-const webSocket = new WebSocket("ws://localhost:8001");
-
-const bus = new WebSocketBus(webSocket);
-```
-
-Once you have a message bus object wrapping your WebSocket connection, you can instantiate an API client:
+This library is platform-agnostic, allowing it to be used for both Node projects and for browsers via tools like webpack. Since it cannot rely on there being an existing WebSocket implementation, you must provide a WebSocket object:
 
 ```javascript
 import { ApiClient } from "vtubestudio";
 
-const apiClient = new ApiClient(bus);
+// A websocket-like object, such as the one provided by the browser or a Node package like 'ws'
+const webSocket = new WebSocket("ws://localhost:8001");
+
+const apiClient = ApiClient.fromWebSocket(webSocket);
 ```
 
-The API client exposes the request/response message pairs provided by the VTube Studio API as single asynchronous functions. For example, to fetch general statistics from the running instance of VTube Studio:
+The API client exposes the request/response message pairs provided by the VTube Studio API as single asynchronous functions. Before you can make any other calls, you first need to authenticate with VTube Studio:
 
 ```javascript
-const stats = await apiClient.statistics();
-console.log("VTube Studio verison:", stats.vTubeStudioVersion);
+let authenticationToken = await tryRetrieveAuthToken(); // You should store the authentication token and attempt to retrieve it here
+
+const pluginName = "My Cool Plugin"; // Give your plugin a name here
+const pluginDeveloper = "My Name Here"; // Put your username or handle here
+
+if (!authenticationToken) {
+  // This prompts the user to authorize your plugin, and generates an authentication token for you to keep track of
+  const response = await apiClient.authenticationToken({
+    pluginName,
+    pluginDeveloper,
+  });
+  authenticationToken = response.authenticationToken;
+  // You should save the authentication token somewhere and use it when re-authenticating so the user doesn't get prompted again
+  await storeAuthToken(authenticationToken);
+}
+
+// Authenticate the plugin using the retrieved authentication token
+await apiClient.authentication({
+  pluginName,
+  pluginDeveloper,
+  authenticationToken,
+});
 ```
 
-> See the official [VTube Studio API documentation](https://github.com/DenchiSoft/VTubeStudio) for more details on what calls are available and what each field means.
+Once you have successfully authenticated, you can make calls to the API. For example, to load a new model in the running instance of VTube Studio:
+
+```javascript
+try {
+  const response = await apiClient.modelLoad({ modelID: "YourNewModelID" });
+  console.log("Successfully loaded model:", response.modelID);
+} catch (e) {
+  console.error("Failed to load model:", e.errorID, e.message);
+}
+```
+
+> See the official [VTube Studio API documentation](https://github.com/DenchiSoft/VTubeStudio) for more details on what calls are available and what each field means. In general, you pass an object representing the `data` property of the request to the library method, and get an object back representing the `data` property of the response. If the request `data` object is empty, the request method instead takes no parameters, and if the response `data` object is empty, the request method returns `Promise<void>`.
 
 An additional options object may be passed as the second parameter to control the execution of the API call. For example, to change the default timeout to 1 minute:
 
 ```javascript
-const stats = await apiClient.statistics({}, { timeout: 60000 });
+const stats = await apiClient.statistics({}, { timeout: 1 * 60 * 1000 });
 ```
 
-### Plugin Wrapper
+## Breaking Changes in 2.x.x
 
-This library also provides a high-level, object-oriented wrapper for VTube Studio plugins which automatically handles the authentication workflow for you:
+Version `v2.x.x` contains several breaking changes from previous versions:
 
-```javascript
-import { Plugin } from "vtubestudio";
-
-const plugin = new Plugin(apiClient, "MyPluginName", "PluginAuthor");
-```
-
-If you would like to persist your plugin's authentication across multiple runs and avoid prompting the user to allow your plugin, use the full constructor which takes an existing token value and a callback when a new token is generated.
-
-```javascript
-// Assuming `loadAuthToken` and `saveAuthToken` are functions you have written:
-const authToken = loadAuthToken();
-const plugin = new Plugin(
-  apiClient,
-  "MyPluginName",
-  "PluginAuthor",
-  undefined,
-  authToken,
-  (newToken) => saveAuthToken(newToken)
-);
-```
-
-> The callback may be called multiple times if the plugin's authentication expires while running.
-
-The plugin wrapper exposes the raw API calls as object-oriented asynchronous method calls. For example, to load a specific model by name:
-
-```javascript
-const availableModels = await plugin.models();
-const modelToLoad = availableModels.find((m) => m.name === "SomeModelName");
-console.log("Loading model from path", modelToLoad.vtsModelPath);
-const loadedModel = await modelToLoad.load();
-console.log("Loaded model in", loadedModel.modelLoadTime, "milliseconds");
-```
-
-> For details on what methods are available on these wrapper objects, see the TypeScript type definitions.
-
-### Testing
-
-There is also a barebones mock API server implementation provided, if you would like to write tests against your plugin implementation instead of a live version of VTube Studio:
-
-```javascript
-import { EchoBus, ApiClient, MockApiServer } from "vtubestudio";
-
-const { clientBus, serverBus } = EchoBus.createLinkedPair();
-const client = new ApiClient(clientBus);
-const server = new MockApiServer(serverBus);
-
-// use client as normal
-```
+- The constructor for `ApiClient` was marked as private, and replaced with two factory methods: `ApiClient.fromWebSocket(ws)` and `ApiClient.fromMessageBus(bus)`, to avoid unnecessarily exposing the end user to the library's message bus abstractions.
+  - It is recommended that normal users should pass the websocket object to `ApiClient.fromWebSocket(ws)` directly instead of creating a `WebSocketBus` and passing that to `new ApiClient(bus)` or `ApiClient.fromMessageBus(bus)`.
+- The object-oriented wrapper classes (`Plugin`, `CurrentModel`, `Expression`, etc.) have been deprecated, and will be removed in the next major version. The stateful nature of the wrappers implied that they were somehow synchronized with VTube Studio, but this was not the case. This became even more obvious with the introduction of highly dynamic concepts like Live2D items and expressions.
+  - Users should switch to making calls to the API directly using the `ApiClient` class instead of the methods on `Plugin`. This unfortunately also includes handling the authentication workflow yourself for now. A basic example is provided above.
+  - A future release may extend the `ApiClient` class to provide the automatic authentication handling that the `Plugin` class provided.
+- The `MockApiServer` class has been removed (as well as the related class `EchoBus`). This class was not intended to be used in production code and was a poor substitute for testing against VTube Studio itself.
+- Expression parameters were changed to use the new shape `{ name: string, value: number }` instead of the deprecated `{ id: string, target: number }`.
+- The `ErrorCode` enum values `InternalClientError`, `MessageBusError`, and `MessageBusClosed` were changed to `-100`, -`101`, and `-102` to avoid conflicting with `-1` (used in the VTube Studio API to indicate the absence of an error).
+  - Code using the enum itself should continue to work as expected, but any code directly checking for the error code numbers will need to be manually fixed.
 
 ## Contributing
 
-Pull requests welcome! Please adhere to the linting and default formatting provided by the TypeScript compiler, and ensure that your code successfully compiles with before opening your PR.
+Pull requests welcome! Please adhere to the linting and default formatting provided by the TypeScript compiler, and ensure that your code successfully compiles before opening your PR.
 
 After cloning the repository or fetching the latest code:
 

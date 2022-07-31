@@ -1,6 +1,5 @@
-import { createClientCall, createServerCall, IMessageBus } from './api'
-import type { IApiEndpoint, IVTSParameter, ILive2DParameter, HotkeyType } from './types'
-import { wait } from './utils'
+import { createClientCall, IMessageBus, IWebSocketLike, WebSocketBus } from './api'
+import type { IApiEndpoint, IVTSParameter, ILive2DParameter, HotkeyType, RestrictedRawKey, ItemType } from './types'
 
 interface APIStateEndpoint extends IApiEndpoint<'APIState', {
 
@@ -108,6 +107,7 @@ interface MoveModelEndpoint extends IApiEndpoint<'MoveModel', {
 
 interface HotkeysInCurrentModelEndpoint extends IApiEndpoint<'HotkeysInCurrentModel', {
     modelID?: string
+    live2DItemFileName?: string
 }, {
     modelLoaded: boolean
     modelName: string
@@ -118,11 +118,14 @@ interface HotkeysInCurrentModelEndpoint extends IApiEndpoint<'HotkeysInCurrentMo
         description: string
         file: string
         hotkeyID: string
+        keyCombination: RestrictedRawKey[]
+        onScreenButtonID: number
     }[]
 }> { }
 
 interface HotkeyTriggerEndpoint extends IApiEndpoint<'HotkeyTrigger', {
     hotkeyID: string
+    itemInstanceID?: string
 }, {
     hotkeyID: string
 }> { }
@@ -146,8 +149,8 @@ interface ExpressionStateEndpoint extends IApiEndpoint<'ExpressionState', {
             id: string
         }[]
         parameters: {
-            id: string
-            target: number
+            name: string
+            value: number
         }[]
     }[]
 }> { }
@@ -271,6 +274,8 @@ interface ParameterDeletionEndpoint extends IApiEndpoint<'ParameterDeletion', {
 }> { }
 
 interface InjectParameterDataEndpoint extends IApiEndpoint<'InjectParameterData', {
+    faceFound: boolean
+    mode: 'set' | 'add'
     parameterValues: {
         id: string
         weight?: number
@@ -335,12 +340,125 @@ interface NDIConfigEndpoint extends IApiEndpoint<'NDIConfig', {
     customHeightNDI: number
 }> { }
 
+interface ItemListEndpoint extends IApiEndpoint<'ItemList', {
+    includeAvailableSpots: boolean
+    includeItemInstancesInScene: boolean
+    includeAvailableItemFiles: boolean
+    onlyItemsWithFileName?: string
+    onlyItemsWithInstanceID?: string
+}, {
+    itemsInSceneCount: number
+    totalItemsAllowedCount: number
+    canLoadItemsRightNow: boolean
+    availableSpots: number[]
+    itemInstancesInScene: {
+        fileName: string
+        instanceID: string
+        order: number
+        type: ItemType
+        censored: boolean
+        flipped: boolean
+        locked: boolean
+        smoothing: number
+        framerate: number
+        frameCount: number
+        currentFrame: number
+        pinnedToModel: boolean
+        pinnedModelID: string
+        pinnedArtMeshID: string
+        groupName: string
+        sceneName: string
+        fromWorkshop: boolean
+    }[]
+    availableItemFiles: {
+        fileName: string
+        type: ItemType
+        loadedCount: boolean
+    }[]
+}> { }
+
+interface ItemLoadEndpoint extends IApiEndpoint<'ItemLoad', {
+    fileName: string
+    positionX: number
+    positionY: number
+    size: number
+    rotation: number
+    fadeTime: number
+    order: number
+    failIfOrderTaken: boolean
+    smoothing: number
+    censored: boolean
+    flipped: boolean
+    locked: boolean
+    unloadWhenPluginDisconnects: boolean
+}, {
+    instanceID: string
+}> { }
+
+interface ItemUnloadEndpoint extends IApiEndpoint<'ItemUnload', {
+    unloadAllInScene: boolean
+    unloadAllLoadedByThisPlugin: boolean
+    allowUnloadingItemsLoadedByUserOrOtherPlugins: boolean
+    instanceIDs: string[]
+    fileNames: string[]
+}, {
+    unloadedItems: {
+        instanceID: string
+        fileName: string
+    }[]
+}> { }
+
+interface ItemAnimationControlEndpoint extends IApiEndpoint<'ItemAnimationControl', {
+    itemInstanceID: string
+    framerate: number
+    frame: number
+    brightness: number
+    opacity: number
+    setAutoStopFrames: boolean
+    autoStopFrames: number[]
+    setAnimationPlayState: boolean
+    animationPlayState: boolean
+}, {
+    frame: number
+    animationPlaying: boolean
+}> { }
+
+interface ItemMoveEndpoint extends IApiEndpoint<'ItemMove', {
+    itemsToMove: {
+        itemInstanceID: string
+        timeInSeconds: number
+        fadeMode: 'linear' | 'easeIn' | 'easeOut' | 'easeBoth' | 'overshoot' | 'zip'
+        positionX: number
+        positionY: number
+        size: number
+        rotation: number
+        order: number
+        setFlip: boolean
+        flip: boolean
+        userCanStop: boolean
+    }[]
+}, {
+    movedItems: {
+        itemInstanceID: string
+        success: boolean
+        errorID: number
+    }[]
+}> { }
+
 export class ApiClient {
-    constructor(private bus: IMessageBus) { }
+    private constructor(private bus: IMessageBus) { }
+
+    static fromMessageBus(bus: IMessageBus) {
+        return new ApiClient(bus)
+    }
+
+    static fromWebSocket(webSocket: IWebSocketLike) {
+        return new ApiClient(new WebSocketBus(webSocket))
+    }
 
     apiState = createClientCall<APIStateEndpoint>(this.bus, 'APIState')
     authenticationToken = createClientCall<AuthenticationTokenEndpoint>(this.bus, 'AuthenticationToken', 5 * 60 * 1000)
-    authentication = createClientCall<AuthenticationEndpoint>(this.bus, 'Authentication')
+    authentication = createClientCall<AuthenticationEndpoint>(this.bus, 'Authentication', 5 * 60 * 1000)
     statistics = createClientCall<StatisticsEndpoint>(this.bus, 'Statistics')
     vtsFolderInfo = createClientCall<VTSFolderInfoEndpoint>(this.bus, 'VTSFolderInfo')
     currentModel = createClientCall<CurrentModelEndpoint>(this.bus, 'CurrentModel')
@@ -364,42 +482,9 @@ export class ApiClient {
     getCurrentModelPhysics = createClientCall<GetCurrentModelPhysicsEndpoint>(this.bus, 'GetCurrentModelPhysics')
     setCurrentModelPhysics = createClientCall<SetCurrentModelPhysicsEndpoint>(this.bus, 'SetCurrentModelPhysics')
     ndiConfig = createClientCall<NDIConfigEndpoint>(this.bus, 'NDIConfig')
-}
-
-type ApiShape = {
-    [P in keyof ApiClient]: ApiClient[P] extends (...a: any) => any ? ApiClient[P] : never
-}
-
-export class MockApiServer implements ApiShape {
-    constructor(private bus: IMessageBus) { }
-
-    apiState = createServerCall<APIStateEndpoint>(this.bus, 'APIState', async () => ({ active: true, vTubeStudioVersion: '1.9.0', currentSessionAuthenticated: true }))
-    authenticationToken = createServerCall<AuthenticationTokenEndpoint>(this.bus, 'AuthenticationToken', async () => {
-        await wait(5000 + Math.random() * 10000)
-        return { authenticationToken: 'MOCK_VTUBE_STUDIO_API' }
-    })
-    authentication = createServerCall<AuthenticationEndpoint>(this.bus, 'Authentication', async () => ({ authenticated: true, reason: '' }))
-    statistics = createServerCall<StatisticsEndpoint>(this.bus, 'Statistics', async () => ({ vTubeStudioVersion: '1.9.0', allowedPlugins: 1, connectedPlugins: 1, framerate: 30, uptime: 0, startedWithSteam: false, windowWidth: 1920, windowHeight: 1080, windowIsFullscreen: true }))
-    vtsFolderInfo = createServerCall<VTSFolderInfoEndpoint>(this.bus, 'VTSFolderInfo', async () => ({ models: '', backgrounds: '', items: '', config: '', logs: '', backup: '' }))
-    currentModel = createServerCall<CurrentModelEndpoint>(this.bus, 'CurrentModel', async () => ({ modelLoaded: true, modelID: 'FAKE_MODEL', modelName: 'Fake Model', vtsModelName: '', vtsModelIconName: '', live2DModelName: '', modelLoadTime: 0, timeSinceModelLoaded: 0, numberOfLive2DArtmeshes: 1, numberOfLive2DParameters: 0, numberOfTextures: 1, textureResolution: 1024, hasPhysicsFile: false, modelPosition: { positionX: 0, positionY: 0, rotation: 0, size: 1 } }))
-    moveModel = createServerCall<MoveModelEndpoint>(this.bus, 'MoveModel', async () => { })
-    availableModels = createServerCall<AvailableModelsEndpoint>(this.bus, 'AvailableModels', async () => ({ numberOfModels: 2, availableModels: [{ modelLoaded: true, modelID: 'FAKE_MODEL', modelName: 'Fake Model', vtsModelName: '', vtsModelIconName: '' }, { modelLoaded: false, modelID: 'TEST_MODEL', modelName: 'Test Model', vtsModelName: '', vtsModelIconName: '' }] }))
-    modelLoad = createServerCall<ModelLoadEndpoint>(this.bus, 'ModelLoad', async ({ modelID }) => ({ modelID }))
-    hotkeysInCurrentModel = createServerCall<HotkeysInCurrentModelEndpoint>(this.bus, 'HotkeysInCurrentModel', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', availableHotkeys: [] }))
-    hotkeyTrigger = createServerCall<HotkeyTriggerEndpoint>(this.bus, 'HotkeyTrigger', async ({ hotkeyID }) => ({ hotkeyID }))
-    expressionState = createServerCall<ExpressionStateEndpoint>(this.bus, 'ExpressionState', async () => ({ modelLoaded: true, modelID: 'FAKE_MODEL', modelName: 'Fake Model', expressions: [] }))
-    expressionActivation = createServerCall<ExpressionActivationRequest>(this.bus, 'ExpressionActivation', async () => { })
-    artMeshList = createServerCall<ArtMeshListEndpoint>(this.bus, 'ArtMeshList', async () => ({ modelLoaded: true, numberOfArtMeshNames: 0, numberOfArtMeshTags: 0, artMeshNames: [], artMeshTags: [] }))
-    colorTint = createServerCall<ColorTintEndpoint>(this.bus, 'ColorTint', async () => ({ matchedArtMeshes: 0 }))
-    sceneColorOverlayInfo = createServerCall<SceneColorOverlayInfoEndpoint>(this.bus, 'SceneColorOverlayInfo', async () => ({ active: true, itemsIncluded: true, isWindowCapture: false, baseBrightness: 16, colorBoost: 35, smoothing: 6, colorOverlayR: 206, colorOverlayG: 150, colorOverlayB: 153, colorAvgR: 237, colorAvgG: 157, colorAvgB: 162, leftCapturePart: { active: true, colorR: 243, colorG: 231, colorB: 234 }, middleCapturePart: { active: true, colorR: 230, colorG: 83, colorB: 89 }, rightCapturePart: { active: false, colorR: 235, colorG: 95, colorB: 101 } }))
-    faceFound = createServerCall<FaceFoundEndpoint>(this.bus, 'FaceFound', async () => ({ found: true }))
-    inputParameterList = createServerCall<InputParameterListEndpoint>(this.bus, 'InputParameterList', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', customParameters: [], defaultParameters: [] }))
-    parameterValue = createServerCall<ParameterValueEndpoint>(this.bus, 'ParameterValue', async () => ({ name: 'Param', addedBy: '', min: 0, max: 0, value: 0, defaultValue: 0 }))
-    live2DParameterList = createServerCall<Live2DParameterListEndpoint>(this.bus, 'Live2DParameterList', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', parameters: [] }))
-    parameterCreation = createServerCall<ParameterCreationEndpoint>(this.bus, 'ParameterCreation', async ({ parameterName }) => ({ parameterName }))
-    parameterDeletion = createServerCall<ParameterDeletionEndpoint>(this.bus, 'ParameterDeletion', async ({ parameterName }) => ({ parameterName }))
-    injectParameterData = createServerCall<InjectParameterDataEndpoint>(this.bus, 'InjectParameterData', async () => { })
-    getCurrentModelPhysics = createServerCall<GetCurrentModelPhysicsEndpoint>(this.bus, 'GetCurrentModelPhysics', async () => ({ modelLoaded: true, modelName: 'Test Model', modelID: '', modelHasPhysics: true, physicsSwitchedOn: true, usingLegacyPhysics: false, physicsFPSSetting: -1, baseStrength: 50, baseWind: 17, apiPhysicsOverrideActive: false, apiPhysicsOverridePluginName: '', physicsGroups: [] }))
-    setCurrentModelPhysics = createServerCall<SetCurrentModelPhysicsEndpoint>(this.bus, 'SetCurrentModelPhysics', async () => { })
-    ndiConfig = createServerCall<NDIConfigEndpoint>(this.bus, 'NDIConfig', async (args) => args)
+    itemList = createClientCall<ItemListEndpoint>(this.bus, 'ItemList')
+    itemLoad = createClientCall<ItemLoadEndpoint>(this.bus, 'ItemLoad')
+    itemUnload = createClientCall<ItemUnloadEndpoint>(this.bus, 'ItemUnload')
+    itemAnimationControl = createClientCall<ItemAnimationControlEndpoint>(this.bus, 'ItemAnimationControl')
+    itemMove = createClientCall<ItemMoveEndpoint>(this.bus, 'ItemMove')
 }
