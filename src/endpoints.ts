@@ -274,8 +274,8 @@ interface ParameterDeletionEndpoint extends IApiEndpoint<'ParameterDeletion', {
 }> { }
 
 interface InjectParameterDataEndpoint extends IApiEndpoint<'InjectParameterData', {
-    faceFound: boolean
-    mode: 'set' | 'add'
+    faceFound?: boolean
+    mode?: 'set' | 'add'
     parameterValues: {
         id: string
         weight?: number
