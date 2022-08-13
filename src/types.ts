@@ -1,23 +1,11 @@
 
-export class VTubeStudioError extends Error {
-
-    constructor(public readonly data: Readonly<IApiError['data']>, public readonly requestID: string, public thrownBy?: unknown) {
-        super(`${data.message} (Error Code: ${data.errorID} ${ErrorCode[data.errorID] ?? ErrorCode.Unknown}) (Request ID: ${requestID})`)
-        this.name = this.constructor.name
-        Object.setPrototypeOf(this, new.target.prototype)
-    }
-}
-
 export enum ErrorCode {
     Unknown = NaN,
 
-    // Websocket Closed
-    MessageBusError = -102,
-    MessageBusClosed = -101,
     InternalClientError = -100,
 
     // General
-    None = -1,
+    Unset = -1,
     InternalServerError = 0,
     APIAccessDeactivated = 1,
     JSONInvalid = 2,
@@ -280,31 +268,4 @@ export interface ILive2DParameter extends BaseParameter { }
 
 export interface IVTSParameter extends BaseParameter {
     addedBy: string
-}
-
-export interface IApiMessage<Type extends string, Data extends object> {
-    apiName: 'VTubeStudioPublicAPI'
-    apiVersion: `${number}.${number}`
-    requestID: string
-    messageType: Type
-    data: Data
-}
-
-export interface IApiRequest<Type extends string, Data extends object> extends IApiMessage<`${Type}Request`, Data> { }
-
-export interface IApiResponse<Type extends string, Data extends object> extends IApiMessage<`${Type}Response`, Data> {
-    timestamp: number
-}
-
-export interface IApiError extends IApiMessage<'APIError', {
-    errorID: ErrorCode
-    message: string
-}> {
-    timestamp: number
-}
-
-export interface IApiEndpoint<Type extends string, Request extends object, Response extends object> {
-    Type: Type
-    Request: IApiRequest<Type, Request>
-    Response: IApiResponse<Type, Response>
 }

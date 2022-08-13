@@ -20,3 +20,11 @@ export function wait(ms: number): Promise<void> {
         setTimeout(resolve, ms)
     })
 }
+
+/** @internal */
+export function findWithIndex<T>(array: T[], finder: (v: T) => boolean): readonly [value: T, index: number] | readonly [value: null, index: -1] {
+    const index = array.findIndex(finder)
+    if (index === -1) return [null, -1] as const
+    const value = array[index]!
+    return [value, index] as const
+}

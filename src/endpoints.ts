@@ -1,5 +1,7 @@
-import { createClientCall, IMessageBus, IWebSocketLike, WebSocketBus } from './api'
-import type { IApiEndpoint, IVTSParameter, ILive2DParameter, HotkeyType, RestrictedRawKey, ItemType } from './types'
+import { EndpointCall, IEventHandler, IClientCallConfig, makeRequestMsg, IEndpointHandler, msgIsError, msgIsResponse, IApiEndpoint, IApiEvent, AnyEndpointHandler, AnyEventHandler, VTubeStudioError, msgIsEvent, EventSubscribeCall } from './api'
+import { IVTSParameter, ILive2DParameter, HotkeyType, RestrictedRawKey, ItemType, ErrorCode } from './types'
+import { findWithIndex, generateID, wait } from './utils'
+import { getWebSocketImpl, IWebSocketLike, WebSocketReadyState } from './ws'
 
 interface APIStateEndpoint extends IApiEndpoint<'APIState', {
 
@@ -445,46 +447,198 @@ interface ItemMoveEndpoint extends IApiEndpoint<'ItemMove', {
     }[]
 }> { }
 
-export class ApiClient {
-    private constructor(private bus: IMessageBus) { }
+interface EventSubscriptionEndpoint extends IApiEndpoint<'EventSubscription', {
+    eventName: string
+    subscribe: boolean
+    config: object
+}, {
+    subscribedEventCount: number
+    subscribedEvents: string[]
+}> { }
 
-    static fromMessageBus(bus: IMessageBus) {
-        return new ApiClient(bus)
+interface TestEvent extends IApiEvent<'Test', {
+    testMessageForEvent?: string
+}, {
+    yourTestMessage: string
+    counter: number
+}> { }
+
+interface ModelLoadedEvent extends IApiEvent<'ModelLoaded', {
+    modelID?: string
+}, {
+    modelLoaded: boolean
+    modelName: string
+    modelID: string
+}> { }
+
+export interface IApiClientOptions {
+    /** The URL to connect to VTube Studio with. Defaults to `ws://localhost:8001`. */
+    url?: string
+    /** The port to use when connecting to VTube Studio. Ignored if `url` is provided. Defaults to `8001`. */
+    port?: number
+    /** A user-provided factory function that creates WebSocket instances, for example `(url) => new WebSocket(url)`. Only set this if the library cannot automatically detect a WebSocket implementation in your environment. */
+    webSocketFactory?: (url: string) => IWebSocketLike
+}
+
+export class VTubeStudioApiClient {
+    private _url: string
+    private _port: number
+    private _webSocketFactory: (url: string) => IWebSocketLike
+    private _webSocket: IWebSocketLike
+    private _endpointHandlers: AnyEndpointHandler[]
+    private _eventHandlers: AnyEventHandler[]
+
+    constructor(options?: IApiClientOptions) {
+        this._port = options?.port ?? 8001
+        this._url = options?.url ?? `ws://localhost:${this._port}`
+        const webSocketImpl = options?.webSocketFactory ? null : getWebSocketImpl()
+        this._webSocketFactory = options?.webSocketFactory ?? (url => new webSocketImpl!(url))
+        this._webSocket = this._webSocketFactory(this._url)
+        this._endpointHandlers = []
+        this._eventHandlers = []
+        this._reconnect()
     }
 
-    static fromWebSocket(webSocket: IWebSocketLike) {
-        return new ApiClient(new WebSocketBus(webSocket))
+    apiState = this._createClientCall<APIStateEndpoint>('APIState')
+    authenticationToken = this._createClientCall<AuthenticationTokenEndpoint>('AuthenticationToken', 5 * 60 * 1000)
+    authentication = this._createClientCall<AuthenticationEndpoint>('Authentication')
+    statistics = this._createClientCall<StatisticsEndpoint>('Statistics')
+    vtsFolderInfo = this._createClientCall<VTSFolderInfoEndpoint>('VTSFolderInfo')
+    currentModel = this._createClientCall<CurrentModelEndpoint>('CurrentModel')
+    availableModels = this._createClientCall<AvailableModelsEndpoint>('AvailableModels')
+    modelLoad = this._createClientCall<ModelLoadEndpoint>('ModelLoad')
+    moveModel = this._createClientCall<MoveModelEndpoint>('MoveModel')
+    hotkeysInCurrentModel = this._createClientCall<HotkeysInCurrentModelEndpoint>('HotkeysInCurrentModel')
+    hotkeyTrigger = this._createClientCall<HotkeyTriggerEndpoint>('HotkeyTrigger')
+    expressionState = this._createClientCall<ExpressionStateEndpoint>('ExpressionState')
+    expressionActivation = this._createClientCall<ExpressionActivationRequest>('ExpressionActivation')
+    artMeshList = this._createClientCall<ArtMeshListEndpoint>('ArtMeshList')
+    colorTint = this._createClientCall<ColorTintEndpoint>('ColorTint')
+    sceneColorOverlayInfo = this._createClientCall<SceneColorOverlayInfoEndpoint>('SceneColorOverlayInfo')
+    faceFound = this._createClientCall<FaceFoundEndpoint>('FaceFound')
+    inputParameterList = this._createClientCall<InputParameterListEndpoint>('InputParameterList')
+    parameterValue = this._createClientCall<ParameterValueEndpoint>('ParameterValue')
+    live2DParameterList = this._createClientCall<Live2DParameterListEndpoint>('Live2DParameterList')
+    parameterCreation = this._createClientCall<ParameterCreationEndpoint>('ParameterCreation')
+    parameterDeletion = this._createClientCall<ParameterDeletionEndpoint>('ParameterDeletion')
+    injectParameterData = this._createClientCall<InjectParameterDataEndpoint>('InjectParameterData')
+    getCurrentModelPhysics = this._createClientCall<GetCurrentModelPhysicsEndpoint>('GetCurrentModelPhysics')
+    setCurrentModelPhysics = this._createClientCall<SetCurrentModelPhysicsEndpoint>('SetCurrentModelPhysics')
+    ndiConfig = this._createClientCall<NDIConfigEndpoint>('NDIConfig')
+    itemList = this._createClientCall<ItemListEndpoint>('ItemList')
+    itemLoad = this._createClientCall<ItemLoadEndpoint>('ItemLoad')
+    itemUnload = this._createClientCall<ItemUnloadEndpoint>('ItemUnload')
+    itemAnimationControl = this._createClientCall<ItemAnimationControlEndpoint>('ItemAnimationControl')
+    itemMove = this._createClientCall<ItemMoveEndpoint>('ItemMove')
+
+    events = {
+        test: this._createEventSubCalls<TestEvent>('Test'),
+        modelLoaded: this._createEventSubCalls<ModelLoadedEvent>('ModelLoaded'),
     }
 
-    apiState = createClientCall<APIStateEndpoint>(this.bus, 'APIState')
-    authenticationToken = createClientCall<AuthenticationTokenEndpoint>(this.bus, 'AuthenticationToken', 5 * 60 * 1000)
-    authentication = createClientCall<AuthenticationEndpoint>(this.bus, 'Authentication', 5 * 60 * 1000)
-    statistics = createClientCall<StatisticsEndpoint>(this.bus, 'Statistics')
-    vtsFolderInfo = createClientCall<VTSFolderInfoEndpoint>(this.bus, 'VTSFolderInfo')
-    currentModel = createClientCall<CurrentModelEndpoint>(this.bus, 'CurrentModel')
-    availableModels = createClientCall<AvailableModelsEndpoint>(this.bus, 'AvailableModels')
-    modelLoad = createClientCall<ModelLoadEndpoint>(this.bus, 'ModelLoad')
-    moveModel = createClientCall<MoveModelEndpoint>(this.bus, 'MoveModel')
-    hotkeysInCurrentModel = createClientCall<HotkeysInCurrentModelEndpoint>(this.bus, 'HotkeysInCurrentModel')
-    hotkeyTrigger = createClientCall<HotkeyTriggerEndpoint>(this.bus, 'HotkeyTrigger')
-    expressionState = createClientCall<ExpressionStateEndpoint>(this.bus, 'ExpressionState')
-    expressionActivation = createClientCall<ExpressionActivationRequest>(this.bus, 'ExpressionActivation')
-    artMeshList = createClientCall<ArtMeshListEndpoint>(this.bus, 'ArtMeshList')
-    colorTint = createClientCall<ColorTintEndpoint>(this.bus, 'ColorTint')
-    sceneColorOverlayInfo = createClientCall<SceneColorOverlayInfoEndpoint>(this.bus, 'SceneColorOverlayInfo')
-    faceFound = createClientCall<FaceFoundEndpoint>(this.bus, 'FaceFound')
-    inputParameterList = createClientCall<InputParameterListEndpoint>(this.bus, 'InputParameterList')
-    parameterValue = createClientCall<ParameterValueEndpoint>(this.bus, 'ParameterValue')
-    live2DParameterList = createClientCall<Live2DParameterListEndpoint>(this.bus, 'Live2DParameterList')
-    parameterCreation = createClientCall<ParameterCreationEndpoint>(this.bus, 'ParameterCreation')
-    parameterDeletion = createClientCall<ParameterDeletionEndpoint>(this.bus, 'ParameterDeletion')
-    injectParameterData = createClientCall<InjectParameterDataEndpoint>(this.bus, 'InjectParameterData')
-    getCurrentModelPhysics = createClientCall<GetCurrentModelPhysicsEndpoint>(this.bus, 'GetCurrentModelPhysics')
-    setCurrentModelPhysics = createClientCall<SetCurrentModelPhysicsEndpoint>(this.bus, 'SetCurrentModelPhysics')
-    ndiConfig = createClientCall<NDIConfigEndpoint>(this.bus, 'NDIConfig')
-    itemList = createClientCall<ItemListEndpoint>(this.bus, 'ItemList')
-    itemLoad = createClientCall<ItemLoadEndpoint>(this.bus, 'ItemLoad')
-    itemUnload = createClientCall<ItemUnloadEndpoint>(this.bus, 'ItemUnload')
-    itemAnimationControl = createClientCall<ItemAnimationControlEndpoint>(this.bus, 'ItemAnimationControl')
-    itemMove = createClientCall<ItemMoveEndpoint>(this.bus, 'ItemMove')
+    private _eventSubscription = this._createClientCall<EventSubscriptionEndpoint>('EventSubscription')
+
+    private _createClientCall<T extends IApiEndpoint<any, any, any>>(type: T['Type'], defaultTimeout: number = 1000): EndpointCall<T> {
+        return ((data: T['Request']['data'], config?: IClientCallConfig) => new Promise<T['Response']['data']>((resolve, reject) => {
+            const requestID = generateID(16)
+            const request = makeRequestMsg(type, requestID, data ?? {})
+            const handler: IEndpointHandler<T> = {
+                callback: msg => {
+                    if (msg.requestID === requestID) {
+                        const index = this._endpointHandlers.indexOf(handler)
+                        this._endpointHandlers.splice(index, 1)
+                        clearTimeout(handler.timeout)
+                        if (msgIsResponse<T>(msg, type))
+                            resolve(msg.data ?? {})
+                        else if (msgIsError(msg))
+                            reject(new VTubeStudioError(msg.data ?? {}, requestID))
+                        else
+                            reject(new VTubeStudioError({ errorID: ErrorCode.InternalClientError, message: `The response from VTube Studio was an unexpected type: ${JSON.stringify(msg.messageType)}` }, requestID))
+                    }
+                },
+                type,
+                request,
+                timeout: setTimeout(() => {
+                    const index = this._endpointHandlers.indexOf(handler)
+                    this._endpointHandlers.splice(index, 1)
+                    reject(new VTubeStudioError({ errorID: ErrorCode.InternalClientError, message: 'The request timed out.' }, requestID))
+                }, config?.timeout ?? defaultTimeout),
+            }
+            this._endpointHandlers.push(handler)
+            if (this._webSocket.readyState === WebSocketReadyState.open)
+                this._webSocket.send(JSON.stringify(request))
+        })) as EndpointCall<T>
+    }
+
+    private _createEventSubCalls<T extends IApiEvent<any, any, any>>(type: T['Type']) {
+        return {
+            /**
+             * Adds an event subscription. Subsequent calls will update the subscription config and callback instead of creating a second subscription.
+             * @param {object} config Configuration data for the event subscription.
+             * @param {(data: object) => void} callback A callback that will be invoked each time the event occurs.
+             * @returns A boolean indicating if the subscription was added for the first time (true) or updated (false).
+             */
+            on: (async (callback: (data: T['Event']['data']) => void, config?: T['Config']) => {
+                await this._eventSubscription({ config: config ?? {}, eventName: `${type}Event`, subscribe: true })
+                const handler: IEventHandler<T> = {
+                    callback: msg => {
+                        if (msgIsEvent<T>(msg, type))
+                            callback(msg.data ?? {})
+                    },
+                    type,
+                    config: config ?? {},
+                }
+                const [existingHandler, index] = findWithIndex(this._eventHandlers, h => h.type === type)
+                if (existingHandler) {
+                    this._eventHandlers.splice(index, 1)
+                    return false
+                }
+                this._eventHandlers.push(handler)
+                return true
+            }) as EventSubscribeCall<T>,
+            /**
+             * Removes an event subscription.
+             * @returns {Promise<boolean>} A boolean indicating if there was an existing subscription to remove or not.
+             */
+            off: async () => {
+                const [existingHandler, index] = findWithIndex(this._eventHandlers, h => h.type === type)
+                if (existingHandler) {
+                    this._eventHandlers.splice(index, 1)
+                    await this._eventSubscription({ config: existingHandler.config, eventName: `${type}Event`, subscribe: false })
+                    return true
+                }
+                return false
+            }
+        }
+    }
+
+    private _reconnect() {
+        this._webSocket.addEventListener('open', () => {
+            for (const handler of this._endpointHandlers)
+                this._webSocket.send(JSON.stringify(handler.request))
+            for (const handler of this._eventHandlers)
+                this._eventSubscription({ config: handler.config, eventName: `${handler.type}Event`, subscribe: true })
+        })
+        this._webSocket.addEventListener('message', ({ data }) => {
+            const msg = JSON.parse(data)
+            for (const handler of [...this._endpointHandlers])
+                handler.callback(msg)
+            for (const handler of [...this._eventHandlers])
+                handler.callback(msg)
+        })
+        this._webSocket.addEventListener('close', async () => {
+            await wait(1000)
+            setTimeout(() => {
+                this._webSocket = this._webSocketFactory(this._url)
+                this._reconnect()
+            }, 0)
+        })
+        this._webSocket.addEventListener('error', async () => {
+            await wait(1000)
+            setTimeout(() => {
+                this._webSocket = this._webSocketFactory(this._url)
+                this._reconnect()
+            }, 0)
+        })
+    }
 }

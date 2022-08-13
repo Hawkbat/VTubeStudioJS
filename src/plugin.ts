@@ -1,6 +1,7 @@
 import { filterFalsy } from './utils'
-import type { ApiClient } from './endpoints'
-import { VTubeStudioError, ErrorCode } from './types'
+import type { VTubeStudioApiClient } from './endpoints'
+import { ErrorCode } from './types'
+import { VTubeStudioError } from './api'
 
 /**
  * Warning: this class is not intended to be instantiated directly. Use the instances returned by {@link Plugin} methods instead! 
@@ -204,13 +205,13 @@ export class CurrentModel {
  * @deprecated The object-oriented plugin wrapper is deprecated and will be removed in a future release. Use {@link ApiClient} directly instead.
  **/
 export class Plugin {
-    public apiClient: ApiClient
+    public apiClient: VTubeStudioApiClient
     protected isApiEnabled: boolean | null = null
     protected isAuthenticated: boolean | null = null
     protected isAuthenticating: boolean | null = null
     protected ongoingAuthCall: Promise<void> | null = null
 
-    constructor(apiClient: ApiClient, public name: string, public author: string, public icon?: string | undefined, protected authenticationToken?: string | undefined, protected onAuthenticate?: (token: string) => void) {
+    constructor(apiClient: VTubeStudioApiClient, public name: string, public author: string, public icon?: string | undefined, protected authenticationToken?: string | undefined, protected onAuthenticate?: (token: string) => void) {
         this.apiClient = this.wrapClient(apiClient)
     }
 
@@ -252,16 +253,16 @@ export class Plugin {
         if (!this.isAuthenticated) throw new VTubeStudioError({ errorID: ErrorCode.InternalClientError, message: 'Plugin could not authenticate.' }, 'N/A')
     }
 
-    private wrapClient(apiClient: ApiClient) {
-        const excludedKeys: Partial<{ [key in keyof ApiClient]: boolean }> = {
+    private wrapClient(apiClient: VTubeStudioApiClient) {
+        const excludedKeys: Partial<{ [key in keyof VTubeStudioApiClient]: boolean }> = {
             apiState: true,
             authentication: true,
             authenticationToken: true,
         }
 
-        const wrappedClient = { ...apiClient } as ApiClient
+        const wrappedClient = { ...apiClient } as VTubeStudioApiClient
         Object.setPrototypeOf(wrappedClient, apiClient)
-        const keys = Object.keys(wrappedClient) as (keyof ApiClient)[]
+        const keys = Object.keys(wrappedClient) as (keyof VTubeStudioApiClient)[]
         for (const key of keys) {
             if (typeof wrappedClient[key] === 'function' && !excludedKeys[key]) {
                 (wrappedClient as any)[key] = this.wrapSafeCall(wrappedClient[key] as any).bind(wrappedClient)

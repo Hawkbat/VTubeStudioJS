@@ -1,155 +1,119 @@
-import { generateID } from './utils'
-import { IApiEndpoint, IApiMessage, IApiError, VTubeStudioError, ErrorCode } from './types'
+import { ErrorCode } from './types'
 
-type EndpointCall<T extends IApiEndpoint<any, any, any>> = T extends IApiEndpoint<infer _, infer Request, infer Response> ?
-    ({} extends Request ?
-        ({} extends Response ?
-            (data: void, config?: IClientCallConfig) => Promise<void> :
-            (data: void, config?: IClientCallConfig) => Promise<Response>) :
-        ({} extends Response ?
-            (data: Request, config?: IClientCallConfig) => Promise<void> :
-            (data: Request, config?: IClientCallConfig) => Promise<Response>)) :
-    never
+export class VTubeStudioError extends Error {
 
-interface MessageHandler<T extends IApiMessage<any, any> = IApiMessage<any, any>> {
-    (msg: T): void
-    context?: {
-        timeout: number
-        reject: (reason?: any) => void
-        requestID: string
+    constructor(public readonly data: Readonly<IApiError['data']>, public readonly requestID: string) {
+        super(`${data.message} (Error Code: ${data.errorID} ${ErrorCode[data.errorID] ?? ErrorCode.Unknown}) (Request ID: ${requestID})`)
+        this.name = this.constructor.name
+        Object.setPrototypeOf(this, new.target.prototype)
     }
 }
 
-function makeRequestMsg<T extends IApiEndpoint<any, any, any>>(type: T['Type'], requestID: string, data: T['Request']['data']): T['Request'] {
+export interface IApiMessage<Type extends string, Data extends object> {
+    apiName: 'VTubeStudioPublicAPI'
+    apiVersion: `${number}.${number}`
+    timestamp: number
+    requestID: string
+    messageType: Type
+    data: Data
+}
+
+export interface IApiRequest<Type extends string, Data extends object> extends IApiMessage<`${Type}Request`, Data> { }
+
+export interface IApiResponse<Type extends string, Data extends object> extends IApiMessage<`${Type}Response`, Data> { }
+
+export interface IApiEventMessage<Type extends string, Data extends object> extends IApiMessage<`${Type}`, Data> { }
+
+export interface IApiError extends IApiMessage<'APIError', {
+    errorID: ErrorCode
+    message: string
+}> { }
+
+export interface IApiEndpoint<Type extends string, Request extends object, Response extends object> {
+    Type: Type
+    Request: IApiRequest<Type, Request>
+    Response: IApiResponse<Type, Response>
+}
+
+export interface IApiEvent<Type extends string, Config extends object, EventData extends object> {
+    Type: Type
+    Config: Config
+    Event: IApiEventMessage<Type, EventData>
+}
+
+export type EndpointCall<T extends IApiEndpoint<any, any, any>> = T extends IApiEndpoint<infer _, infer Request, infer Response>
+    ? (
+        {} extends Request
+        ? (
+            {} extends Response
+            ? (data?: undefined, config?: IClientCallConfig) => Promise<void>
+            : (data?: undefined, config?: IClientCallConfig) => Promise<Response>
+        )
+        : (
+            {} extends Response
+            ? (data: Request, config?: IClientCallConfig) => Promise<void>
+            : (data: Request, config?: IClientCallConfig) => Promise<Response>
+        )
+    )
+    : never
+
+export type EventSubscribeCall<T extends IApiEvent<any, any, any>> = T extends IApiEvent<infer _, infer Config, infer EventData>
+    ? (
+        {} extends Config
+        ? (
+            {} extends EventData
+            ? (callback: (data?: undefined) => void, config?: Config) => Promise<boolean>
+            : (callback: (data: EventData) => void, config?: Config) => Promise<boolean>
+        )
+        : (
+            {} extends EventData
+            ? (callback: (data?: undefined) => void, config: Config) => Promise<boolean>
+            : (callback: (data: EventData) => void, config: Config) => Promise<boolean>
+        )
+    )
+    : never
+
+export interface IEndpointHandler<T extends IApiEndpoint<any, any, any>> {
+    callback: (msg: IApiMessage<any, any>) => void
+    type: T['Type']
+    request: T['Request']
+    timeout: number
+}
+
+export type AnyEndpointHandler = IEndpointHandler<IApiEndpoint<any, any, any>>
+
+export interface IEventHandler<T extends IApiEvent<any, any, any>> {
+    callback: (msg: IApiMessage<any, any>) => void
+    type: T['Type']
+    config: T['Config']
+}
+
+export type AnyEventHandler = IEventHandler<IApiEvent<any, any, any>>
+
+export function makeRequestMsg<T extends IApiEndpoint<any, any, any>>(type: T['Type'], requestID: string, data: T['Request']['data']): T['Request'] {
     return {
         apiName: 'VTubeStudioPublicAPI',
         apiVersion: '1.0',
+        timestamp: Date.now(),
         messageType: `${type}Request` as T['Request']['messageType'],
         requestID,
         data,
     }
 }
 
-function msgIsResponse<T extends IApiEndpoint<any, any, any>>(msg: IApiMessage<any, any>, type: T['Type']): msg is T['Response'] {
+export function msgIsResponse<T extends IApiEndpoint<any, any, any>>(msg: IApiMessage<any, any>, type: T['Type']): msg is T['Response'] {
     return msg.messageType === `${type}Response`
 }
 
-function msgIsError(msg: IApiMessage<any, any>): msg is IApiError {
+export function msgIsEvent<T extends IApiEvent<any, any, any>>(msg: IApiMessage<any, any>, type: T['Type']): msg is T['Event'] {
+    return msg.messageType === `${type}Event`
+}
+
+export function msgIsError(msg: IApiMessage<any, any>): msg is IApiError {
     return msg.messageType === 'APIError'
 }
 
 export interface IClientCallConfig {
     /** Controls the number of milliseconds allowed to elapse without a response before the API considers the call to have failed. */
     timeout?: number
-}
-
-/** @internal */
-export function createClientCall<T extends IApiEndpoint<any, any, any>>(bus: IMessageBus, type: T['Type'], defaultTimeout: number = 5000): EndpointCall<T> {
-    return ((data: T['Request']['data'], config?: IClientCallConfig) => new Promise<T['Response']['data']>((resolve, reject) => {
-        const requestID = generateID(16)
-        const handler: MessageHandler = msg => {
-            if (msg.requestID === requestID) {
-                bus.off(handler)
-                clearTimeout((handler.context as { timeout: number }).timeout)
-                if (msgIsResponse<T>(msg, type))
-                    resolve(msg.data ?? {})
-                else if (msgIsError(msg))
-                    reject(new VTubeStudioError(msg.data ?? {}, requestID))
-            }
-        }
-        handler.context = {
-            timeout: setTimeout(() => {
-                bus.off(handler)
-                reject(new VTubeStudioError({ errorID: ErrorCode.InternalClientError, message: 'The request timed out.' }, requestID))
-            }, config?.timeout ?? defaultTimeout),
-            reject,
-            requestID,
-        }
-        bus.on(handler)
-        bus.send(makeRequestMsg(type, requestID, data ?? {}))
-    })) as EndpointCall<T>
-}
-
-export interface IMessageBus {
-    send: <T extends IApiMessage<any, any>>(msg: T) => void
-    receive: <T extends IApiMessage<any, any>>(msg: T) => void
-    on: (handler: MessageHandler) => void
-    off: (handler: MessageHandler) => void
-}
-
-/** @internal */
-export interface IWebSocketLike {
-    send(data: string): void
-    addEventListener(type: 'message' | 'close' | 'error', handler: (event: { data: any }) => void): void
-}
-
-abstract class MessageBusBase implements IMessageBus {
-    protected handlers: MessageHandler[] = []
-
-    on(handler: MessageHandler<IApiMessage<any, any>>): void {
-        this.handlers.push(handler)
-    }
-
-    off(handler: MessageHandler<IApiMessage<any, any>>): void {
-        this.handlers.splice(this.handlers.findIndex(h => h === handler), 1)
-    }
-
-    receive<T extends IApiMessage<any, any>>(msg: T): void {
-        for (const handler of [...this.handlers]) handler(msg)
-    }
-
-    abstract send<T extends IApiMessage<any, any>>(msg: T): void
-}
-
-export class WebSocketBus extends MessageBusBase {
-    protected isClosed: boolean = false
-
-    constructor(private webSocket: IWebSocketLike) {
-        super()
-        webSocket.addEventListener('message', e => {
-            const msg = JSON.parse(e.data)
-            this.receive(msg)
-        })
-        webSocket.addEventListener('close', () => {
-            this.close()
-        })
-        webSocket.addEventListener('error', (e) => {
-            this.throwException((requestID: string) => new VTubeStudioError({ errorID: ErrorCode.MessageBusError, message: `Message bus error: ${e}` }, requestID, e))
-        })
-    }
-
-    override on(handler: MessageHandler<IApiMessage<any, any>>): void {
-        if (this.isClosed) return
-        return super.on(handler)
-    }
-
-    override off(handler: MessageHandler<IApiMessage<any, any>>): void {
-        if (this.isClosed) return
-        return super.off(handler)
-    }
-
-    override receive<T extends IApiMessage<any, any>>(msg: T): void {
-        if (this.isClosed) return
-        return super.receive(msg)
-    }
-
-    send<T extends IApiMessage<any, any>>(msg: T): void {
-        if (this.isClosed) return
-        this.webSocket.send(JSON.stringify(msg))
-    }
-
-    close() {
-        this.throwException((requestID: string) => new VTubeStudioError({ errorID: ErrorCode.MessageBusClosed, message: 'Message bus closed.' }, requestID))
-        this.isClosed = true
-    }
-
-    protected throwException(errorSupplier: (requestID: string) => unknown) {
-        for (const handler of [...this.handlers]) {
-            if (handler.context !== undefined) {
-                clearTimeout(handler.context.timeout)
-                handler.context.reject(errorSupplier(handler.context.requestID))
-            }
-        }
-        this.handlers = []
-    }
 }
