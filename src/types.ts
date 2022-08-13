@@ -256,6 +256,7 @@ export enum RestrictedRawKey {
 
 export type ItemType = 'PNG' | 'JPG' | 'GIF' | 'AnimationFolder' | 'Live2D' | 'Unknown'
 
+/** @internal */
 export interface BaseParameter {
     name: string
     value: number

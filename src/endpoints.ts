@@ -480,7 +480,7 @@ export interface IApiClientOptions {
     webSocketFactory?: (url: string) => IWebSocketLike
 }
 
-export class VTubeStudioApiClient {
+export class ApiClient {
     private _url: string
     private _port: number
     private _webSocketFactory: (url: string) => IWebSocketLike

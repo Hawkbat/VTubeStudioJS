@@ -1,4 +1,3 @@
-export * from './api'
-export * from './endpoints'
-export * from './types'
-export * from './utils'
+export { ApiClient, IApiClientOptions } from './endpoints'
+export { IClientCallConfig, VTubeStudioError } from './api'
+export { ErrorCode, HotkeyType, ItemType, RestrictedRawKey, ILive2DParameter, IVTSParameter } from './types'

@@ -9,6 +9,7 @@ export class VTubeStudioError extends Error {
     }
 }
 
+/** @internal */
 export interface IApiMessage<Type extends string, Data extends object> {
     apiName: 'VTubeStudioPublicAPI'
     apiVersion: `${number}.${number}`
@@ -18,29 +19,36 @@ export interface IApiMessage<Type extends string, Data extends object> {
     data: Data
 }
 
+/** @internal */
 export interface IApiRequest<Type extends string, Data extends object> extends IApiMessage<`${Type}Request`, Data> { }
 
+/** @internal */
 export interface IApiResponse<Type extends string, Data extends object> extends IApiMessage<`${Type}Response`, Data> { }
 
+/** @internal */
 export interface IApiEventMessage<Type extends string, Data extends object> extends IApiMessage<`${Type}`, Data> { }
 
+/** @internal */
 export interface IApiError extends IApiMessage<'APIError', {
     errorID: ErrorCode
     message: string
 }> { }
 
+/** @internal */
 export interface IApiEndpoint<Type extends string, Request extends object, Response extends object> {
     Type: Type
     Request: IApiRequest<Type, Request>
     Response: IApiResponse<Type, Response>
 }
 
+/** @internal */
 export interface IApiEvent<Type extends string, Config extends object, EventData extends object> {
     Type: Type
     Config: Config
     Event: IApiEventMessage<Type, EventData>
 }
 
+/** @internal */
 export type EndpointCall<T extends IApiEndpoint<any, any, any>> = T extends IApiEndpoint<infer _, infer Request, infer Response>
     ? (
         {} extends Request
@@ -57,6 +65,7 @@ export type EndpointCall<T extends IApiEndpoint<any, any, any>> = T extends IApi
     )
     : never
 
+/** @internal */
 export type EventSubscribeCall<T extends IApiEvent<any, any, any>> = T extends IApiEvent<infer _, infer Config, infer EventData>
     ? (
         {} extends Config
@@ -73,6 +82,7 @@ export type EventSubscribeCall<T extends IApiEvent<any, any, any>> = T extends I
     )
     : never
 
+/** @internal */
 export interface IEndpointHandler<T extends IApiEndpoint<any, any, any>> {
     callback: (msg: IApiMessage<any, any>) => void
     type: T['Type']
@@ -80,16 +90,20 @@ export interface IEndpointHandler<T extends IApiEndpoint<any, any, any>> {
     timeout: number
 }
 
+/** @internal */
 export type AnyEndpointHandler = IEndpointHandler<IApiEndpoint<any, any, any>>
 
+/** @internal */
 export interface IEventHandler<T extends IApiEvent<any, any, any>> {
     callback: (msg: IApiMessage<any, any>) => void
     type: T['Type']
     config: T['Config']
 }
 
+/** @internal */
 export type AnyEventHandler = IEventHandler<IApiEvent<any, any, any>>
 
+/** @internal */
 export function makeRequestMsg<T extends IApiEndpoint<any, any, any>>(type: T['Type'], requestID: string, data: T['Request']['data']): T['Request'] {
     return {
         apiName: 'VTubeStudioPublicAPI',
@@ -101,14 +115,17 @@ export function makeRequestMsg<T extends IApiEndpoint<any, any, any>>(type: T['T
     }
 }
 
+/** @internal */
 export function msgIsResponse<T extends IApiEndpoint<any, any, any>>(msg: IApiMessage<any, any>, type: T['Type']): msg is T['Response'] {
     return msg.messageType === `${type}Response`
 }
 
+/** @internal */
 export function msgIsEvent<T extends IApiEvent<any, any, any>>(msg: IApiMessage<any, any>, type: T['Type']): msg is T['Event'] {
     return msg.messageType === `${type}Event`
 }
 
+/** @internal */
 export function msgIsError(msg: IApiMessage<any, any>): msg is IApiError {
     return msg.messageType === 'APIError'
 }
