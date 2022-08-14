@@ -88,6 +88,7 @@ export interface IEndpointHandler<T extends IApiEndpoint<any, any, any>> {
     type: T['Type']
     request: T['Request']
     timeout: number
+    remove: boolean
 }
 
 /** @internal */
@@ -98,6 +99,7 @@ export interface IEventHandler<T extends IApiEvent<any, any, any>> {
     callback: (msg: IApiMessage<any, any>) => void
     type: T['Type']
     config: T['Config']
+    remove: boolean
 }
 
 /** @internal */

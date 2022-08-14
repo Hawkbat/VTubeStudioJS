@@ -1,6 +1,6 @@
 import { EndpointCall, IEventHandler, IClientCallConfig, makeRequestMsg, IEndpointHandler, msgIsError, msgIsResponse, IApiEndpoint, IApiEvent, AnyEndpointHandler, AnyEventHandler, VTubeStudioError, msgIsEvent, EventSubscribeCall } from './api'
 import { IVTSParameter, ILive2DParameter, HotkeyType, RestrictedRawKey, ItemType, ErrorCode } from './types'
-import { findWithIndex, generateID, wait } from './utils'
+import { generateID, wait } from './utils'
 import { getWebSocketImpl, IWebSocketLike, WebSocketReadyState } from './ws'
 
 interface APIStateEndpoint extends IApiEndpoint<'APIState', {
@@ -472,6 +472,16 @@ interface ModelLoadedEvent extends IApiEvent<'ModelLoaded', {
 }> { }
 
 export interface IApiClientOptions {
+    /** A callback that will be invoked when an authentication token is needed to authenticate with VTube Studio. Return null from this function if no token is available yet. */
+    authTokenGetter: () => string | null | Promise<string | null>
+    /** A callback that will be invoked when an authentication token needs to be saved by the plugin. Store this token in a location that will persist between application restarts. */
+    authTokenSetter: (authenticationToken: string) => Promise<void>
+    /** The name of the plugin, which will be displayed in VTube Studio. */
+    pluginName: string
+    /** The username of the plugin developer, which will be displayed in VTube Studio. */
+    pluginDeveloper: string
+    /** A base64-encoded PNG or JPG that is exactly 128x128 pixels which will be displayed in VTube Studio. */
+    pluginIcon?: string
     /** The URL to connect to VTube Studio with. Defaults to `ws://localhost:8001`. */
     url?: string
     /** The port to use when connecting to VTube Studio. Ignored if `url` is provided. Defaults to `8001`. */
@@ -481,59 +491,98 @@ export interface IApiClientOptions {
 }
 
 export class ApiClient {
+    private _authTokenGetter: () => string | null | Promise<string | null>
+    private _authTokenSetter: (authenticationToken: string) => Promise<void>
+    private _pluginName: string
+    private _pluginDeveloper: string
+    private _pluginIcon?: string
     private _url: string
     private _port: number
     private _webSocketFactory: (url: string) => IWebSocketLike
     private _webSocket: IWebSocketLike
-    private _endpointHandlers: AnyEndpointHandler[]
-    private _eventHandlers: AnyEventHandler[]
+    private _connectHandlers: (() => void)[] = []
+    private _disconnectHandlers: (() => void)[] = []
+    private _errorHandlers: ((err: unknown) => void)[] = []
+    private _endpointHandlers: AnyEndpointHandler[] = []
+    private _eventHandlers: AnyEventHandler[] = []
+    private _isConnected: boolean = false
+    private _isConnecting: boolean = false
 
-    constructor(options?: IApiClientOptions) {
-        this._port = options?.port ?? 8001
-        this._url = options?.url ?? `ws://localhost:${this._port}`
-        const webSocketImpl = options?.webSocketFactory ? null : getWebSocketImpl()
-        this._webSocketFactory = options?.webSocketFactory ?? (url => new webSocketImpl!(url))
+    public get isConnected() { return this._isConnected }
+    public get isConnecting() { return this._isConnecting }
+
+    constructor(options: IApiClientOptions) {
+        this._authTokenGetter = options.authTokenGetter
+        this._authTokenSetter = options.authTokenSetter
+        this._pluginName = options.pluginName
+        this._pluginDeveloper = options.pluginDeveloper
+        this._pluginIcon = options.pluginIcon
+        this._port = options.port ?? 8001
+        this._url = options.url ?? `ws://localhost:${this._port}`
+        const webSocketImpl = options.webSocketFactory ? null : getWebSocketImpl()
+        this._webSocketFactory = options.webSocketFactory ?? (url => new webSocketImpl!(url))
         this._webSocket = this._webSocketFactory(this._url)
-        this._endpointHandlers = []
-        this._eventHandlers = []
         this._reconnect()
     }
 
-    apiState = this._createClientCall<APIStateEndpoint>('APIState')
-    authenticationToken = this._createClientCall<AuthenticationTokenEndpoint>('AuthenticationToken', 5 * 60 * 1000)
-    authentication = this._createClientCall<AuthenticationEndpoint>('Authentication')
-    statistics = this._createClientCall<StatisticsEndpoint>('Statistics')
-    vtsFolderInfo = this._createClientCall<VTSFolderInfoEndpoint>('VTSFolderInfo')
-    currentModel = this._createClientCall<CurrentModelEndpoint>('CurrentModel')
-    availableModels = this._createClientCall<AvailableModelsEndpoint>('AvailableModels')
-    modelLoad = this._createClientCall<ModelLoadEndpoint>('ModelLoad')
-    moveModel = this._createClientCall<MoveModelEndpoint>('MoveModel')
-    hotkeysInCurrentModel = this._createClientCall<HotkeysInCurrentModelEndpoint>('HotkeysInCurrentModel')
-    hotkeyTrigger = this._createClientCall<HotkeyTriggerEndpoint>('HotkeyTrigger')
-    expressionState = this._createClientCall<ExpressionStateEndpoint>('ExpressionState')
-    expressionActivation = this._createClientCall<ExpressionActivationRequest>('ExpressionActivation')
-    artMeshList = this._createClientCall<ArtMeshListEndpoint>('ArtMeshList')
-    colorTint = this._createClientCall<ColorTintEndpoint>('ColorTint')
-    sceneColorOverlayInfo = this._createClientCall<SceneColorOverlayInfoEndpoint>('SceneColorOverlayInfo')
-    faceFound = this._createClientCall<FaceFoundEndpoint>('FaceFound')
-    inputParameterList = this._createClientCall<InputParameterListEndpoint>('InputParameterList')
-    parameterValue = this._createClientCall<ParameterValueEndpoint>('ParameterValue')
-    live2DParameterList = this._createClientCall<Live2DParameterListEndpoint>('Live2DParameterList')
-    parameterCreation = this._createClientCall<ParameterCreationEndpoint>('ParameterCreation')
-    parameterDeletion = this._createClientCall<ParameterDeletionEndpoint>('ParameterDeletion')
-    injectParameterData = this._createClientCall<InjectParameterDataEndpoint>('InjectParameterData')
-    getCurrentModelPhysics = this._createClientCall<GetCurrentModelPhysicsEndpoint>('GetCurrentModelPhysics')
-    setCurrentModelPhysics = this._createClientCall<SetCurrentModelPhysicsEndpoint>('SetCurrentModelPhysics')
-    ndiConfig = this._createClientCall<NDIConfigEndpoint>('NDIConfig')
-    itemList = this._createClientCall<ItemListEndpoint>('ItemList')
-    itemLoad = this._createClientCall<ItemLoadEndpoint>('ItemLoad')
-    itemUnload = this._createClientCall<ItemUnloadEndpoint>('ItemUnload')
-    itemAnimationControl = this._createClientCall<ItemAnimationControlEndpoint>('ItemAnimationControl')
-    itemMove = this._createClientCall<ItemMoveEndpoint>('ItemMove')
+    readonly apiState = this._createClientCall<APIStateEndpoint>('APIState')
+    readonly authenticationToken = this._createClientCall<AuthenticationTokenEndpoint>('AuthenticationToken', 5 * 60 * 1000)
+    readonly authentication = this._createClientCall<AuthenticationEndpoint>('Authentication')
+    readonly statistics = this._createClientCall<StatisticsEndpoint>('Statistics')
+    readonly vtsFolderInfo = this._createClientCall<VTSFolderInfoEndpoint>('VTSFolderInfo')
+    readonly currentModel = this._createClientCall<CurrentModelEndpoint>('CurrentModel')
+    readonly availableModels = this._createClientCall<AvailableModelsEndpoint>('AvailableModels')
+    readonly modelLoad = this._createClientCall<ModelLoadEndpoint>('ModelLoad')
+    readonly moveModel = this._createClientCall<MoveModelEndpoint>('MoveModel')
+    readonly hotkeysInCurrentModel = this._createClientCall<HotkeysInCurrentModelEndpoint>('HotkeysInCurrentModel')
+    readonly hotkeyTrigger = this._createClientCall<HotkeyTriggerEndpoint>('HotkeyTrigger')
+    readonly expressionState = this._createClientCall<ExpressionStateEndpoint>('ExpressionState')
+    readonly expressionActivation = this._createClientCall<ExpressionActivationRequest>('ExpressionActivation')
+    readonly artMeshList = this._createClientCall<ArtMeshListEndpoint>('ArtMeshList')
+    readonly colorTint = this._createClientCall<ColorTintEndpoint>('ColorTint')
+    readonly sceneColorOverlayInfo = this._createClientCall<SceneColorOverlayInfoEndpoint>('SceneColorOverlayInfo')
+    readonly faceFound = this._createClientCall<FaceFoundEndpoint>('FaceFound')
+    readonly inputParameterList = this._createClientCall<InputParameterListEndpoint>('InputParameterList')
+    readonly parameterValue = this._createClientCall<ParameterValueEndpoint>('ParameterValue')
+    readonly live2DParameterList = this._createClientCall<Live2DParameterListEndpoint>('Live2DParameterList')
+    readonly parameterCreation = this._createClientCall<ParameterCreationEndpoint>('ParameterCreation')
+    readonly parameterDeletion = this._createClientCall<ParameterDeletionEndpoint>('ParameterDeletion')
+    readonly injectParameterData = this._createClientCall<InjectParameterDataEndpoint>('InjectParameterData')
+    readonly getCurrentModelPhysics = this._createClientCall<GetCurrentModelPhysicsEndpoint>('GetCurrentModelPhysics')
+    readonly setCurrentModelPhysics = this._createClientCall<SetCurrentModelPhysicsEndpoint>('SetCurrentModelPhysics')
+    readonly ndiConfig = this._createClientCall<NDIConfigEndpoint>('NDIConfig')
+    readonly itemList = this._createClientCall<ItemListEndpoint>('ItemList')
+    readonly itemLoad = this._createClientCall<ItemLoadEndpoint>('ItemLoad')
+    readonly itemUnload = this._createClientCall<ItemUnloadEndpoint>('ItemUnload')
+    readonly itemAnimationControl = this._createClientCall<ItemAnimationControlEndpoint>('ItemAnimationControl')
+    readonly itemMove = this._createClientCall<ItemMoveEndpoint>('ItemMove')
 
-    events = {
+    events = Object.seal({
         test: this._createEventSubCalls<TestEvent>('Test'),
         modelLoaded: this._createEventSubCalls<ModelLoadedEvent>('ModelLoaded'),
+    })
+
+    on(type: 'connect', handler: () => void): void
+    on(type: 'disconnect', handler: () => void): void
+    on(type: 'error', handler: (err: unknown) => void): void
+    on(type: 'connect' | 'disconnect' | 'error', handler: (...args: any[]) => void): void {
+        if (type === 'connect' && !this._connectHandlers.find(h => h === handler))
+            this._connectHandlers.push(handler)
+        if (type === 'disconnect' && !this._disconnectHandlers.find(h => h === handler))
+            this._disconnectHandlers.push(handler)
+        if (type === 'error' && !this._errorHandlers.find(h => h === handler))
+            this._errorHandlers.push(handler)
+    }
+    off(type: 'connect', handler: () => void): void
+    off(type: 'disconnect', handler: () => void): void
+    off(type: 'error', handler: (err: unknown) => void): void
+    off(type: 'connect' | 'disconnect' | 'error', handler: (...args: any[]) => void): void {
+        if (type === 'connect' && this._connectHandlers.find(h => h === handler))
+            this._connectHandlers.splice(this._connectHandlers.findIndex(h => h === handler), 1)
+        if (type === 'disconnect' && this._disconnectHandlers.find(h => h === handler))
+            this._disconnectHandlers.splice(this._disconnectHandlers.findIndex(h => h === handler), 1)
+        if (type === 'error' && this._errorHandlers.find(h => h === handler))
+            this._errorHandlers.splice(this._errorHandlers.findIndex(h => h === handler), 1)
     }
 
     private _eventSubscription = this._createClientCall<EventSubscriptionEndpoint>('EventSubscription')
@@ -545,8 +594,7 @@ export class ApiClient {
             const handler: IEndpointHandler<T> = {
                 callback: msg => {
                     if (msg.requestID === requestID) {
-                        const index = this._endpointHandlers.indexOf(handler)
-                        this._endpointHandlers.splice(index, 1)
+                        handler.remove = true
                         clearTimeout(handler.timeout)
                         if (msgIsResponse<T>(msg, type))
                             resolve(msg.data ?? {})
@@ -559,10 +607,10 @@ export class ApiClient {
                 type,
                 request,
                 timeout: setTimeout(() => {
-                    const index = this._endpointHandlers.indexOf(handler)
-                    this._endpointHandlers.splice(index, 1)
+                    handler.remove = true
                     reject(new VTubeStudioError({ errorID: ErrorCode.InternalClientError, message: 'The request timed out.' }, requestID))
                 }, config?.timeout ?? defaultTimeout),
+                remove: false,
             }
             this._endpointHandlers.push(handler)
             if (this._webSocket.readyState === WebSocketReadyState.open)
@@ -573,12 +621,12 @@ export class ApiClient {
     private _createEventSubCalls<T extends IApiEvent<any, any, any>>(type: T['Type']) {
         return {
             /**
-             * Adds an event subscription. Subsequent calls will update the subscription config and callback instead of creating a second subscription.
+             * Adds or replaces an event subscription. Subsequent calls will replace the subscription config and callback instead of creating additional subscriptions.
              * @param {object} config Configuration data for the event subscription.
              * @param {(data: object) => void} callback A callback that will be invoked each time the event occurs.
-             * @returns A boolean indicating if the subscription was added for the first time (true) or updated (false).
+             * @returns {Promise<boolean>} A Promise of a boolean indicating if the subscription was added for the first time (true) or replaced (false).
              */
-            on: (async (callback: (data: T['Event']['data']) => void, config?: T['Config']) => {
+            subscribe: (async (callback: (data: T['Event']['data']) => void, config?: T['Config']) => {
                 await this._eventSubscription({ config: config ?? {}, eventName: `${type}Event`, subscribe: true })
                 const handler: IEventHandler<T> = {
                     callback: msg => {
@@ -587,24 +635,25 @@ export class ApiClient {
                     },
                     type,
                     config: config ?? {},
-                }
-                const [existingHandler, index] = findWithIndex(this._eventHandlers, h => h.type === type)
-                if (existingHandler) {
-                    this._eventHandlers.splice(index, 1)
-                    return false
+                    remove: false,
                 }
                 this._eventHandlers.push(handler)
+                const existingHandler = this._eventHandlers.find(h => h.type === type)
+                if (existingHandler) {
+                    existingHandler.remove = true
+                    return false
+                }
                 return true
             }) as EventSubscribeCall<T>,
             /**
              * Removes an event subscription.
-             * @returns {Promise<boolean>} A boolean indicating if there was an existing subscription to remove or not.
+             * @returns {Promise<boolean>} A Promise of a boolean indicating if there was an existing subscription to remove or not.
              */
-            off: async () => {
-                const [existingHandler, index] = findWithIndex(this._eventHandlers, h => h.type === type)
+            unsubscribe: async (): Promise<boolean> => {
+                const existingHandler = this._eventHandlers.find(h => h.type === type)
                 if (existingHandler) {
-                    this._eventHandlers.splice(index, 1)
                     await this._eventSubscription({ config: existingHandler.config, eventName: `${type}Event`, subscribe: false })
+                    existingHandler.remove = true
                     return true
                 }
                 return false
@@ -613,32 +662,78 @@ export class ApiClient {
     }
 
     private _reconnect() {
-        this._webSocket.addEventListener('open', () => {
-            for (const handler of this._endpointHandlers)
-                this._webSocket.send(JSON.stringify(handler.request))
-            for (const handler of this._eventHandlers)
-                this._eventSubscription({ config: handler.config, eventName: `${handler.type}Event`, subscribe: true })
-        })
+        this._isConnecting = true
         this._webSocket.addEventListener('message', ({ data }) => {
-            const msg = JSON.parse(data)
-            for (const handler of [...this._endpointHandlers])
-                handler.callback(msg)
-            for (const handler of [...this._eventHandlers])
-                handler.callback(msg)
+            try {
+                const msg = JSON.parse(data)
+                for (const handler of this._endpointHandlers)
+                    handler.callback(msg)
+                for (const handler of this._eventHandlers)
+                    handler.callback(msg)
+                for (let i = this._endpointHandlers.length - 1; i >= 0; i--)
+                    if (this._endpointHandlers[i]!.remove)
+                        this._endpointHandlers.splice(i, 1)
+                for (let i = this._eventHandlers.length - 1; i >= 0; i--)
+                    if (this._eventHandlers[i]!.remove)
+                        this._eventHandlers.splice(i, 1)
+            } catch (e) {
+                for (const handler of this._errorHandlers) handler(e)
+            }
         })
         this._webSocket.addEventListener('close', async () => {
-            await wait(1000)
-            setTimeout(() => {
+            this._disconnect()
+        })
+        this._webSocket.addEventListener('open', async () => {
+            try {
+                const pluginName = this._pluginName
+                const pluginDeveloper = this._pluginDeveloper
+                const pluginIcon = this._pluginIcon
+
+                const { active, currentSessionAuthenticated } = await this.apiState()
+
+                if (!active) throw new Error('VTube Studio Plugin API is not enabled.')
+
+                if (!currentSessionAuthenticated) {
+                    try {
+                        const authenticationToken = await this._authTokenGetter()
+                        if (!authenticationToken) throw new Error('Missing authentication token')
+                        const { authenticated, reason } = await this.authentication({ pluginName, pluginDeveloper, authenticationToken })
+                        if (!authenticated) throw new Error(`Authentication with VTube Studio failed: ${reason}`)
+                    } catch {
+                        const { authenticationToken } = await this.authenticationToken({ pluginName, pluginDeveloper, pluginIcon })
+                        const { authenticated, reason } = await this.authentication({ pluginName, pluginDeveloper, authenticationToken })
+                        if (!authenticated) throw new Error(`Authentication with VTube Studio failed: ${reason}`)
+                        await this._authTokenSetter(authenticationToken)
+                    }
+                }
+
+                for (const handler of this._endpointHandlers)
+                    this._webSocket.send(JSON.stringify(handler.request))
+
+                await Promise.all(this._eventHandlers.map(handler => this._eventSubscription({ config: handler.config, eventName: `${handler.type}Event`, subscribe: true })))
+
+                this._isConnecting = false
+                this._isConnected = true
+                for (const handler of this._connectHandlers) handler()
+            } catch (e) {
+                for (const handler of this._errorHandlers) handler(e)
+                this._webSocket.close()
+            }
+        })
+    }
+
+    private async _disconnect() {
+        this._isConnecting = false
+        if (this._isConnected) {
+            this._isConnected = false
+            for (const handler of this._disconnectHandlers) handler()
+        }
+        await wait(5 * 1000)
+        setTimeout(() => {
+            if (!this._isConnecting && !this._isConnected) {
                 this._webSocket = this._webSocketFactory(this._url)
                 this._reconnect()
-            }, 0)
-        })
-        this._webSocket.addEventListener('error', async () => {
-            await wait(1000)
-            setTimeout(() => {
-                this._webSocket = this._webSocketFactory(this._url)
-                this._reconnect()
-            }, 0)
-        })
+            }
+        }, 0)
     }
 }
