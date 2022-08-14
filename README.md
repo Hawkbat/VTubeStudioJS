@@ -30,7 +30,7 @@ import { ApiClient } from "vtubestudio";
 
 // CommonJS/Require
 const vts = require("vtubestudio");
-const apiClient = vts.ApiClient;
+const ApiClient = vts.ApiClient;
 
 function setAuthToken(authenticationToken) {
   // store the authentication token somewhere
