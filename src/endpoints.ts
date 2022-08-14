@@ -1,6 +1,7 @@
 import { EndpointCall, IEventHandler, IClientCallConfig, makeRequestMsg, IEndpointHandler, msgIsError, msgIsResponse, IApiEndpoint, IApiEvent, AnyEndpointHandler, AnyEventHandler, VTubeStudioError, msgIsEvent, EventSubscribeCall } from './api'
 import { IVTSParameter, ILive2DParameter, HotkeyType, RestrictedRawKey, ItemType, ErrorCode } from './types'
 import { generateID, wait } from './utils'
+import { validate } from './validation'
 import { getWebSocketImpl, IWebSocketLike, WebSocketReadyState } from './ws'
 
 interface APIStateEndpoint extends IApiEndpoint<'APIState', {
@@ -512,6 +513,16 @@ export class ApiClient {
     public get isConnecting() { return this._isConnecting }
 
     constructor(options: IApiClientOptions) {
+        validate(options, 'options', ['object', {
+            authTokenGetter: 'function',
+            authTokenSetter: 'function',
+            pluginDeveloper: 'string',
+            pluginName: 'string',
+            pluginIcon: ['optional', 'string'],
+            url: ['optional', 'string'],
+            port: ['optional', 'number'],
+            webSocketFactory: ['optional', 'function'],
+        }])
         this._authTokenGetter = options.authTokenGetter
         this._authTokenSetter = options.authTokenSetter
         this._pluginName = options.pluginName
@@ -566,6 +577,8 @@ export class ApiClient {
     on(type: 'disconnect', handler: () => void): void
     on(type: 'error', handler: (err: unknown) => void): void
     on(type: 'connect' | 'disconnect' | 'error', handler: (...args: any[]) => void): void {
+        validate(type, 'type', ['stringEnum', ['connect', 'disconnect', 'error']])
+        validate(handler, 'handler', 'function')
         if (type === 'connect' && !this._connectHandlers.find(h => h === handler))
             this._connectHandlers.push(handler)
         if (type === 'disconnect' && !this._disconnectHandlers.find(h => h === handler))
@@ -577,6 +590,8 @@ export class ApiClient {
     off(type: 'disconnect', handler: () => void): void
     off(type: 'error', handler: (err: unknown) => void): void
     off(type: 'connect' | 'disconnect' | 'error', handler: (...args: any[]) => void): void {
+        validate(type, 'type', ['stringEnum', ['connect', 'disconnect', 'error']])
+        validate(handler, 'handler', 'function')
         if (type === 'connect' && this._connectHandlers.find(h => h === handler))
             this._connectHandlers.splice(this._connectHandlers.findIndex(h => h === handler), 1)
         if (type === 'disconnect' && this._disconnectHandlers.find(h => h === handler))
