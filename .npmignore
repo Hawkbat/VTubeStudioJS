@@ -1,5 +1,6 @@
 .git/
 .vscode/
 node_modules/
+/examples/
 *.tsbuildinfo
 .gitignore

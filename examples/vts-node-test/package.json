@@ -1,0 +1,14 @@
+{
+  "name": "vts-node-test",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "vtubestudio": "^3.0.0-beta.3",
+    "ws": "^8.8.1"
+  }
+}

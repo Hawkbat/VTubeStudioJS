@@ -683,6 +683,9 @@ export class ApiClient {
         this._webSocket.addEventListener('close', async () => {
             this._disconnect()
         })
+        this._webSocket.addEventListener('error', () => {
+            this._webSocket.close()
+        })
         this._webSocket.addEventListener('open', async () => {
             try {
                 const pluginName = this._pluginName
