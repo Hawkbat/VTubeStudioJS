@@ -45,6 +45,11 @@ const options = {
   authTokenSetter: setAuthToken,
   pluginName: "Your Plugin Name",
   pluginDeveloper: "Your User Name",
+
+  // Optionally set the URL or port to connect to VTube Studio at; defaults are as below:
+
+  //port: 8001,
+  //url: "ws://localhost:${port}",
 };
 
 const apiClient = new ApiClient(options);

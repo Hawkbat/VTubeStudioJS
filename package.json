@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "prepare": "npm run clean && npm run build",
+    "prepare": "npm run clean && npm run build && npx typedoc src/index.ts",
     "build": "tsc -b ./",
     "clean": "tsc -b ./ --clean",
     "publish-patch": "npm version patch && git push && npm publish",
@@ -28,6 +28,7 @@
   },
   "homepage": "https://github.com/Hawkbat/VTubeStudioJS#readme",
   "devDependencies": {
+    "typedoc": "^0.23.10",
     "typescript": "^4.7.4"
   }
 }
