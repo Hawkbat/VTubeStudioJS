@@ -637,8 +637,8 @@ export class ApiClient {
                     config: config ?? {},
                     remove: false,
                 }
-                this._eventHandlers.push(handler)
                 const existingHandler = this._eventHandlers.find(h => h.type === type)
+                this._eventHandlers.push(handler)
                 if (existingHandler) {
                     existingHandler.remove = true
                     return false
