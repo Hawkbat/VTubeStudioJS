@@ -11,41 +11,38 @@ function App() {
   const [availableModels, setAvailableModels] = useState([])
 
   useEffect(() => {
-    async function run() {
-      const apiClient = new ApiClient({
-        authTokenGetter: () => localStorage.getItem('VTS.JS_TEST_AUTH_TOKEN'),
-        authTokenSetter: (authenticationToken) => localStorage.setItem('VTS.JS_TEST_AUTH_TOKEN', authenticationToken),
-        pluginDeveloper: 'Hawkbar',
-        pluginName: 'VTS.JS Test',
-      })
+    const apiClient = new ApiClient({
+      authTokenGetter: () => localStorage.getItem('VTS.JS_TEST_AUTH_TOKEN'),
+      authTokenSetter: (authenticationToken) => localStorage.setItem('VTS.JS_TEST_AUTH_TOKEN', authenticationToken),
+      pluginDeveloper: 'Hawkbar',
+      pluginName: 'VTS.JS Test',
+    })
 
-      setApiClient(apiClient)
+    setApiClient(apiClient)
 
-      apiClient.on('connect', async () => {
-        const { availableModels } = await apiClient.availableModels()
-        setAvailableModels(availableModels)
+    apiClient.on('connect', async () => {
+      const { availableModels } = await apiClient.availableModels()
+      setAvailableModels(availableModels)
 
-        await apiClient.events.modelLoaded.subscribe(({ modelLoaded, modelID, modelName }) => {
-          setModelLoaded(modelLoaded)
-          setModelID(modelID)
-          setModelName(modelName)
-        })
-
-        await apiClient.events.test.subscribe(({ yourTestMessage, counter }) => {
-          setYourTestMessage(yourTestMessage)
-          setCounter(counter)
-        }, {
-          testMessageForEvent: 'Echo test'
-        })
-
-        const { modelLoaded, modelID, modelName } = await apiClient.currentModel()
+      await apiClient.events.modelLoaded.subscribe(({ modelLoaded, modelID, modelName }) => {
         setModelLoaded(modelLoaded)
         setModelID(modelID)
         setModelName(modelName)
       })
-    }
 
-    run()
+      await apiClient.events.test.subscribe(({ yourTestMessage, counter }) => {
+        setYourTestMessage(yourTestMessage)
+        setCounter(counter)
+      }, {
+        testMessageForEvent: 'Echo test'
+      })
+
+      const { modelLoaded, modelID, modelName } = await apiClient.currentModel()
+      setModelLoaded(modelLoaded)
+      setModelID(modelID)
+      setModelName(modelName)
+    })
+
   }, [])
 
   return (

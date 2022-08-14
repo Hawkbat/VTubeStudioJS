@@ -19,12 +19,15 @@ apiClient.on('connect', async () => {
 
     console.log('Adding event callback whenever a model is loaded')
     await apiClient.events.modelLoaded.subscribe((data) => {
-        setTimeout(async () => {
-            console.log('Switching to random model')
-            const otherModels = availableModels.filter(m => m.modelID !== data.modelID)
-            const randomModel = otherModels[Math.floor(otherModels.length * Math.random())]
-            console.log('Switching to ' + randomModel.modelName)
-            await apiClient.modelLoad({ modelID: randomModel.modelID })
-        }, 2000)
+        if (data.modelLoaded) {
+            console.log('Model loaded, queuing up a random model switch')
+            setTimeout(async () => {
+                console.log('Switching to random model')
+                const otherModels = availableModels.filter(m => m.modelID !== data.modelID)
+                const randomModel = otherModels[Math.floor(otherModels.length * Math.random())]
+                console.log('Switching to ' + randomModel.modelName)
+                await apiClient.modelLoad({ modelID: randomModel.modelID })
+            }, 3000)
+        }
     })
 })
