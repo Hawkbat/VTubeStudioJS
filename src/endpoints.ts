@@ -429,16 +429,16 @@ interface ItemAnimationControlEndpoint extends IApiEndpoint<'ItemAnimationContro
 interface ItemMoveEndpoint extends IApiEndpoint<'ItemMove', {
     itemsToMove: {
         itemInstanceID: string
-        timeInSeconds: number
-        fadeMode: 'linear' | 'easeIn' | 'easeOut' | 'easeBoth' | 'overshoot' | 'zip'
-        positionX: number
-        positionY: number
-        size: number
-        rotation: number
-        order: number
-        setFlip: boolean
-        flip: boolean
-        userCanStop: boolean
+        timeInSeconds?: number
+        fadeMode?: 'linear' | 'easeIn' | 'easeOut' | 'easeBoth' | 'overshoot' | 'zip'
+        positionX?: number
+        positionY?: number
+        size?: number
+        rotation?: number
+        order?: number
+        setFlip?: boolean
+        flip?: boolean
+        userCanStop?: boolean
     }[]
 }, {
     movedItems: {
