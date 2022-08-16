@@ -29,12 +29,11 @@ export function validate<T>(value: T, name: string, schema: ValidationSchema<T>)
             for (let i = 0; i < value.length; i++) validate(value[i], `${name}[${i}]`, subSchema as any)
         } else if (type === 'object') {
             if (typeof value !== 'object') throw new Error(`${name} must be an object (got ${typeof value} instead)`)
-            for (const k in schema) {
-                if (!(k in value)) throw new Error(`${name}.${k} must be set`)
-                validate((value as any)[k], `${name}.${k}`, (schema as any)[k])
+            for (const k in subSchema) {
+                validate((value as any)[k], `${name}.${k}`, (subSchema as any)[k])
             }
             for (const k in value) {
-                if (!(k in schema)) throw new Error(`${name}.${k} must not be set`)
+                if (!(k in (subSchema as any))) throw new Error(`${name}.${k} must not be set`)
             }
         }
     }
