@@ -382,18 +382,18 @@ interface ItemListEndpoint extends IApiEndpoint<'ItemList', {
 
 interface ItemLoadEndpoint extends IApiEndpoint<'ItemLoad', {
     fileName: string
-    positionX: number
-    positionY: number
-    size: number
-    rotation: number
-    fadeTime: number
-    order: number
-    failIfOrderTaken: boolean
-    smoothing: number
-    censored: boolean
-    flipped: boolean
-    locked: boolean
-    unloadWhenPluginDisconnects: boolean
+    positionX?: number
+    positionY?: number
+    size?: number
+    rotation?: number
+    fadeTime?: number
+    order?: number
+    failIfOrderTaken?: boolean
+    smoothing?: number
+    censored?: boolean
+    flipped?: boolean
+    locked?: boolean
+    unloadWhenPluginDisconnects?: boolean
 }, {
     instanceID: string
 }> { }
@@ -429,16 +429,16 @@ interface ItemAnimationControlEndpoint extends IApiEndpoint<'ItemAnimationContro
 interface ItemMoveEndpoint extends IApiEndpoint<'ItemMove', {
     itemsToMove: {
         itemInstanceID: string
-        timeInSeconds: number
-        fadeMode: 'linear' | 'easeIn' | 'easeOut' | 'easeBoth' | 'overshoot' | 'zip'
-        positionX: number
-        positionY: number
-        size: number
-        rotation: number
-        order: number
-        setFlip: boolean
-        flip: boolean
-        userCanStop: boolean
+        timeInSeconds?: number
+        fadeMode?: 'linear' | 'easeIn' | 'easeOut' | 'easeBoth' | 'overshoot' | 'zip'
+        positionX?: number
+        positionY?: number
+        size?: number
+        rotation?: number
+        order?: number
+        setFlip?: boolean
+        flip?: boolean
+        userCanStop?: boolean
     }[]
 }, {
     movedItems: {
