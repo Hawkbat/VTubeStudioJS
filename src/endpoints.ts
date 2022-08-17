@@ -382,18 +382,18 @@ interface ItemListEndpoint extends IApiEndpoint<'ItemList', {
 
 interface ItemLoadEndpoint extends IApiEndpoint<'ItemLoad', {
     fileName: string
-    positionX: number
-    positionY: number
-    size: number
-    rotation: number
-    fadeTime: number
-    order: number
-    failIfOrderTaken: boolean
-    smoothing: number
-    censored: boolean
-    flipped: boolean
-    locked: boolean
-    unloadWhenPluginDisconnects: boolean
+    positionX?: number
+    positionY?: number
+    size?: number
+    rotation?: number
+    fadeTime?: number
+    order?: number
+    failIfOrderTaken?: boolean
+    smoothing?: number
+    censored?: boolean
+    flipped?: boolean
+    locked?: boolean
+    unloadWhenPluginDisconnects?: boolean
 }, {
     instanceID: string
 }> { }
