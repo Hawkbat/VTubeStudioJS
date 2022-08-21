@@ -465,11 +465,33 @@ interface TestEvent extends IApiEvent<'Test', {
 }> { }
 
 interface ModelLoadedEvent extends IApiEvent<'ModelLoaded', {
-    modelID?: string
+    modelID?: string[]
 }, {
     modelLoaded: boolean
     modelName: string
     modelID: string
+}> { }
+
+interface TrackingStatusChangedEvent extends IApiEvent<'TrackingStatusChanged', {
+
+}, {
+    faceFound: boolean
+    leftHandFound: boolean
+    rightHandFound: boolean
+}> { }
+
+interface BackgroundChangedEvent extends IApiEvent<'BackgroundChanged', {
+
+}, {
+    backgroundName: string
+}> { }
+
+interface ModelConfigChangedEvent extends IApiEvent<'ModelConfigChanged', {
+
+}, {
+    modelID: string
+    modelName: string
+    hotkeyConfigChanged: boolean
 }> { }
 
 export interface IApiClientOptions {
@@ -571,6 +593,9 @@ export class ApiClient {
     events = Object.seal({
         test: this._createEventSubCalls<TestEvent>('Test'),
         modelLoaded: this._createEventSubCalls<ModelLoadedEvent>('ModelLoaded'),
+        trackingStatusChanged: this._createEventSubCalls<TrackingStatusChangedEvent>('TrackingStatusChanged'),
+        backgroundChanged: this._createEventSubCalls<BackgroundChangedEvent>('BackgroundChanged'),
+        modelConfigChanged: this._createEventSubCalls<ModelConfigChangedEvent>('ModelConfigChanged'),
     })
 
     on(type: 'connect', handler: () => void): void
