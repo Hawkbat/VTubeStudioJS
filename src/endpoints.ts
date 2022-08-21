@@ -457,6 +457,17 @@ interface EventSubscriptionEndpoint extends IApiEndpoint<'EventSubscription', {
     subscribedEvents: string[]
 }> { }
 
+interface ArtMeshSelectionEndpoint extends IApiEndpoint<'ArtMeshSelection', {
+    textOverride?: string | null
+    helpOverride?: string | null
+    requestedArtMeshCount: number
+    activeArtMeshes?: string[]
+}, {
+    success: boolean
+    activeArtMeshes: string[]
+    inactiveArtMeshes: string[]
+}> { }
+
 interface TestEvent extends IApiEvent<'Test', {
     testMessageForEvent?: string
 }, {
@@ -589,6 +600,7 @@ export class ApiClient {
     readonly itemUnload = this._createClientCall<ItemUnloadEndpoint>('ItemUnload')
     readonly itemAnimationControl = this._createClientCall<ItemAnimationControlEndpoint>('ItemAnimationControl')
     readonly itemMove = this._createClientCall<ItemMoveEndpoint>('ItemMove')
+    readonly artMeshSelection = this._createClientCall<ArtMeshSelectionEndpoint>('ArtMeshSelection', 30 * 60 * 1000)
 
     events = Object.seal({
         test: this._createEventSubCalls<TestEvent>('Test'),
