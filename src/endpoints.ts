@@ -541,6 +541,7 @@ export class ApiClient {
     private _eventHandlers: AnyEventHandler[] = []
     private _isConnected: boolean = false
     private _isConnecting: boolean = false
+    private _shouldReconnect: boolean = true
 
     public get isConnected() { return this._isConnected }
     public get isConnecting() { return this._isConnecting }
@@ -635,6 +636,11 @@ export class ApiClient {
             this._disconnectHandlers.splice(this._disconnectHandlers.findIndex(h => h === handler), 1)
         if (type === 'error' && this._errorHandlers.find(h => h === handler))
             this._errorHandlers.splice(this._errorHandlers.findIndex(h => h === handler), 1)
+    }
+
+    async disconnect() {
+        this._shouldReconnect = false
+        this._webSocket.close();
     }
 
     private _eventSubscription = this._createClientCall<EventSubscriptionEndpoint>('EventSubscription')
@@ -783,6 +789,8 @@ export class ApiClient {
             this._isConnected = false
             for (const handler of this._disconnectHandlers) handler()
         }
+        if (!this._shouldReconnect) return
+
         await wait(5 * 1000)
         setTimeout(() => {
             if (!this._isConnecting && !this._isConnected) {
