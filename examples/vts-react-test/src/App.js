@@ -43,6 +43,9 @@ function App() {
       setModelName(modelName)
     })
 
+    return () => {
+      apiClient.disconnect()
+    }
   }, [])
 
   return (
