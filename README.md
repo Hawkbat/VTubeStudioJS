@@ -158,9 +158,11 @@ const stats = await apiClient.statistics(undefined, { timeout: 1 * 60 * 1000 });
 
 ### WebSockets
 
-The API client expects a WebSocket implementation to be available. In the browser, the native WebSocket will be used automatically, while in NodeJS it will attempt to use the implementation from the `ws` package, which you should install alongside this package. If you would like to use another implementation, you can explicitly provide a `webSocketFactory` function, like so:
+The API client expects a WebSocket implementation to be available. In the browser, the native WebSocket will be used automatically. In NodeJS or other contexts, you must provide an external implementation, such as the one from the `ws` package. In this case, you can explicitly provide a `webSocketFactory` function, like so:
 
 ```javascript
+const WebSocket = require("ws");
+
 const options = {
   // ...
   webSocketFactory: (url) => new WebSocket(url),
@@ -172,6 +174,12 @@ const apiClient = new ApiClient(options);
 ## Examples
 
 Examples are included in the repository's `examples` folder for a React app (created with `create-react-app`) and a plain NodeJS app.
+
+## Breaking Changes in 3.2.0
+
+Version `v3.2.0` contains a minor breaking change from previous versions:
+
+- The `ApiClient` no longer attempts to import the `ws` package, due to complications with bundling for browser environments when the `ws` package is present in the package hierarchy. In NodeJS and other server environments, you must explicitly pass a WebSocket constructor via the `webSocketFactory` option. See the example above for reference.
 
 ## Breaking Changes in 3.x.x
 

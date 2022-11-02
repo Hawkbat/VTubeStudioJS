@@ -1,11 +1,13 @@
 const vts = require('vtubestudio')
 const fs = require('fs')
+const WebSocket = require('ws')
 
 const apiClient = new vts.ApiClient({
     authTokenGetter: () => fs.readFileSync('./auth-token.txt', 'utf-8'),
     authTokenSetter: (authenticationToken) => fs.writeFileSync('./auth-token.txt', authenticationToken, { encoding: 'utf-8' }),
     pluginName: 'VTS.JS Test',
     pluginDeveloper: 'Hawkbar',
+    webSocketFactory: url => new WebSocket(url),
 })
 
 apiClient.on('connect', async () => {

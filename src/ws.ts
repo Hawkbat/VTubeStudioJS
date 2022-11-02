@@ -12,7 +12,6 @@ export function getWebSocketImpl() {
     if (!ws && typeof window !== 'undefined' && 'WebSocket' in window) ws = window.WebSocket
     if (!ws && typeof global !== 'undefined' && 'WebSocket' in global) ws = global.WebSocket
     if (!ws && typeof self !== 'undefined' && 'WebSocket' in self) ws = self.WebSocket
-    if (!ws && typeof require !== 'undefined') try { ws = require('ws') } catch { }
     if (!ws) throw new Error('Could not locate a WebSocket implementation in your current environment. Please provide a WebSocket factory manually in the constructor options.')
     return ws
 }

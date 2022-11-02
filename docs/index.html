@@ -79,14 +79,22 @@
 <a href="#websockets" id="websockets" style="color: inherit; text-decoration: none;">
   <h3>WebSockets</h3>
 </a>
-<p>The API client expects a WebSocket implementation to be available. In the browser, the native WebSocket will be used automatically, while in NodeJS it will attempt to use the implementation from the <code>ws</code> package, which you should install alongside this package. If you would like to use another implementation, you can explicitly provide a <code>webSocketFactory</code> function, like so:</p>
-<pre><code class="language-javascript"><span class="hl-5">const</span><span class="hl-1"> </span><span class="hl-6">options</span><span class="hl-1"> = {</span><br/><span class="hl-1">  </span><span class="hl-0">// ...</span><br/><span class="hl-1">  </span><span class="hl-7">webSocketFactory</span><span class="hl-3">:</span><span class="hl-1"> (</span><span class="hl-3">url</span><span class="hl-1">) </span><span class="hl-5">=&gt;</span><span class="hl-1"> </span><span class="hl-5">new</span><span class="hl-1"> </span><span class="hl-7">WebSocket</span><span class="hl-1">(</span><span class="hl-3">url</span><span class="hl-1">),</span><br/><span class="hl-1">};</span><br/><br/><span class="hl-5">const</span><span class="hl-1"> </span><span class="hl-6">apiClient</span><span class="hl-1"> = </span><span class="hl-5">new</span><span class="hl-1"> </span><span class="hl-7">ApiClient</span><span class="hl-1">(</span><span class="hl-3">options</span><span class="hl-1">);</span>
+<p>The API client expects a WebSocket implementation to be available. In the browser, the native WebSocket will be used automatically. In NodeJS or other contexts, you must provide an external implementation, such as the one from the <code>ws</code> package. In this case, you can explicitly provide a <code>webSocketFactory</code> function, like so:</p>
+<pre><code class="language-javascript"><span class="hl-5">const</span><span class="hl-1"> </span><span class="hl-6">WebSocket</span><span class="hl-1"> = </span><span class="hl-7">require</span><span class="hl-1">(</span><span class="hl-4">&quot;ws&quot;</span><span class="hl-1">);</span><br/><br/><span class="hl-5">const</span><span class="hl-1"> </span><span class="hl-6">options</span><span class="hl-1"> = {</span><br/><span class="hl-1">  </span><span class="hl-0">// ...</span><br/><span class="hl-1">  </span><span class="hl-7">webSocketFactory</span><span class="hl-3">:</span><span class="hl-1"> (</span><span class="hl-3">url</span><span class="hl-1">) </span><span class="hl-5">=&gt;</span><span class="hl-1"> </span><span class="hl-5">new</span><span class="hl-1"> </span><span class="hl-7">WebSocket</span><span class="hl-1">(</span><span class="hl-3">url</span><span class="hl-1">),</span><br/><span class="hl-1">};</span><br/><br/><span class="hl-5">const</span><span class="hl-1"> </span><span class="hl-6">apiClient</span><span class="hl-1"> = </span><span class="hl-5">new</span><span class="hl-1"> </span><span class="hl-7">ApiClient</span><span class="hl-1">(</span><span class="hl-3">options</span><span class="hl-1">);</span>
 </code></pre>
 
 <a href="#examples" id="examples" style="color: inherit; text-decoration: none;">
   <h2>Examples</h2>
 </a>
 <p>Examples are included in the repository&#39;s <code>examples</code> folder for a React app (created with <code>create-react-app</code>) and a plain NodeJS app.</p>
+
+<a href="#breaking-changes-in-320" id="breaking-changes-in-320" style="color: inherit; text-decoration: none;">
+  <h2>Breaking Changes in 3.2.0</h2>
+</a>
+<p>Version <code>v3.2.0</code> contains a minor breaking change from previous versions:</p>
+<ul>
+<li>The <code>ApiClient</code> no longer attempts to import the <code>ws</code> package, due to complications with bundling for browser environments when the <code>ws</code> package is present in the package hierarchy. In NodeJS and other server environments, you must explicitly pass a WebSocket constructor via the <code>webSocketFactory</code> option. See the example above for reference.</li>
+</ul>
 
 <a href="#breaking-changes-in-3xx" id="breaking-changes-in-3xx" style="color: inherit; text-decoration: none;">
   <h2>Breaking Changes in 3.x.x</h2>

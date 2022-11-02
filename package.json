@@ -5,9 +5,10 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "prepare": "npm run clean && npm run build && npx typedoc src/index.ts",
+    "prepare": "npm run clean && npm run build && npm run build:docs",
     "build": "tsc -b ./",
     "clean": "tsc -b ./ --clean",
+    "build:docs": "npx typedoc src/index.ts",
     "publish-patch": "npm version patch && git push && npm publish",
     "publish-minor": "npm version minor && git push && npm publish",
     "publish-major": "npm version major && git push && npm publish"
