@@ -505,6 +505,29 @@ interface ModelConfigChangedEvent extends IApiEvent<'ModelConfigChanged', {
     hotkeyConfigChanged: boolean
 }> { }
 
+interface ModelMovedEvent extends IApiEvent<'ModelMoved', {
+
+}, {
+    modelID: string
+    modelName: string
+    modelPosition: {
+        positionX: number
+        positionY: number
+        size: number
+        rotation: number
+    }
+}> { }
+
+interface ModelOutlineEvent extends IApiEvent<'ModelOutline', {
+    draw?: boolean
+}, {
+    modelName: string
+    modelID: string
+    convexHull: { x: number, y: number }[]
+    convexHullCenter: { x: number, y: number }
+    windowSize: { x: number, y: number }
+}> { }
+
 export interface IApiClientOptions {
     /** A callback that will be invoked when an authentication token is needed to authenticate with VTube Studio. Return null from this function if no token is available yet. */
     authTokenGetter: () => string | null | Promise<string | null>
@@ -609,6 +632,8 @@ export class ApiClient {
         trackingStatusChanged: this._createEventSubCalls<TrackingStatusChangedEvent>('TrackingStatusChanged'),
         backgroundChanged: this._createEventSubCalls<BackgroundChangedEvent>('BackgroundChanged'),
         modelConfigChanged: this._createEventSubCalls<ModelConfigChangedEvent>('ModelConfigChanged'),
+        modelMoved: this._createEventSubCalls<ModelMovedEvent>('ModelMoved'),
+        modelOutline: this._createEventSubCalls<ModelOutlineEvent>('ModelOutline'),
     })
 
     on(type: 'connect', handler: () => void): void

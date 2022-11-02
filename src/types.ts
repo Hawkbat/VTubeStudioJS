@@ -150,6 +150,7 @@ export enum HotkeyType {
     DownloadRandomWorkshopItem = 14,
     ExecuteItemAction = 15,
     ArtMeshColorPreset = 16,
+    ToggleTracker = 17,
 }
 
 export enum RestrictedRawKey {
