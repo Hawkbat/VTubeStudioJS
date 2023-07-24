@@ -16,7 +16,6 @@ export function getWebSocketImpl() {
     return ws
 }
 
-/** @internal */
 export const enum WebSocketReadyState {
     connecting = 0,
     open = 1,
@@ -24,7 +23,6 @@ export const enum WebSocketReadyState {
     closed = 3,
 }
 
-/** @internal */
 export interface IWebSocketLike {
     readonly readyState: WebSocketReadyState
     close(code?: number, reason?: string): void

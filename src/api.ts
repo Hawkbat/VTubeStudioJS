@@ -9,7 +9,6 @@ export class VTubeStudioError extends Error {
     }
 }
 
-/** @internal */
 export interface IApiMessage<Type extends string, Data extends object> {
     apiName: 'VTubeStudioPublicAPI'
     apiVersion: `${number}.${number}`
@@ -28,7 +27,6 @@ export interface IApiResponse<Type extends string, Data extends object> extends 
 /** @internal */
 export interface IApiEventMessage<Type extends string, Data extends object> extends IApiMessage<`${Type}`, Data> { }
 
-/** @internal */
 export interface IApiError extends IApiMessage<'APIError', {
     errorID: ErrorCode
     message: string
