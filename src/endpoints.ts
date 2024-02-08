@@ -1,5 +1,5 @@
 import { EndpointCall, IEventHandler, IClientCallConfig, makeRequestMsg, IEndpointHandler, msgIsError, msgIsResponse, IApiEndpoint, IApiEvent, AnyEndpointHandler, AnyEventHandler, VTubeStudioError, msgIsEvent, EventSubscribeCall } from './api'
-import { IVTSParameter, ILive2DParameter, HotkeyType, RestrictedRawKey, ItemType, ErrorCode } from './types'
+import { IVTSParameter, ILive2DParameter, HotkeyType, RestrictedRawKey, ItemType, ErrorCode, PermissionType } from './types'
 import { generateID, wait } from './utils'
 import { validate } from './validation'
 import { getWebSocketImpl, IWebSocketLike, WebSocketReadyState } from './ws'
@@ -394,8 +394,13 @@ interface ItemLoadEndpoint extends IApiEndpoint<'ItemLoad', {
     flipped?: boolean
     locked?: boolean
     unloadWhenPluginDisconnects?: boolean
+    customDataBase64?: string
+    customDataAskUserFirst?: boolean
+    customDataSkipAskingUserIfWhitelisted?: boolean
+    customDataAskTimer?: number
 }, {
     instanceID: string
+    fileName: string
 }> { }
 
 interface ItemUnloadEndpoint extends IApiEndpoint<'ItemUnload', {
@@ -444,17 +449,8 @@ interface ItemMoveEndpoint extends IApiEndpoint<'ItemMove', {
     movedItems: {
         itemInstanceID: string
         success: boolean
-        errorID: number
+        errorID: ErrorCode
     }[]
-}> { }
-
-interface EventSubscriptionEndpoint extends IApiEndpoint<'EventSubscription', {
-    eventName: string
-    subscribe: boolean
-    config: object
-}, {
-    subscribedEventCount: number
-    subscribedEvents: string[]
 }> { }
 
 interface ArtMeshSelectionEndpoint extends IApiEndpoint<'ArtMeshSelection', {
@@ -466,6 +462,53 @@ interface ArtMeshSelectionEndpoint extends IApiEndpoint<'ArtMeshSelection', {
     success: boolean
     activeArtMeshes: string[]
     inactiveArtMeshes: string[]
+}> { }
+
+interface ItemPinEndpoint extends IApiEndpoint<'ItemPin', {
+    itemInstanceID: string
+    pin: false
+} | {
+    itemInstanceID: string
+    pin: true
+    angleRelativeTo: 'RelativeToWorld' | 'RelativeToCurrentItemRotation' | 'RelativeToModel' | 'RelativeToPinPosition'
+    sizeRelativeTo: 'RelativeToWorld' | 'RelativeToCurrentItemSize'
+    vertexPinType: 'Provided' | 'Center' | 'Random'
+    pinInfo: {
+        modelID?: string
+        artMeshID?: string
+        angle: number
+        size: number
+        vertexID1?: number
+        vertexID2?: number
+        vertexID3?: number
+        vertexWeight1?: number
+        vertexWeight2?: number
+        vertexWeight3?: number
+    }
+}, {
+    isPinned: boolean
+    itemInstanceID: string
+    itemFileName: string
+}> { }
+
+interface PermissionEndpoint extends IApiEndpoint<'Permission', {
+    requestedPermission?: PermissionType
+}, {
+    grantSuccess: boolean
+    requestedPermission: null | PermissionType
+    permissions: {
+        name: PermissionType
+        granted: boolean
+    }[]
+}> { }
+
+interface EventSubscriptionEndpoint extends IApiEndpoint<'EventSubscription', {
+    eventName: string
+    subscribe: boolean
+    config: object
+}, {
+    subscribedEventCount: number
+    subscribedEvents: string[]
 }> { }
 
 interface TestEvent extends IApiEvent<'Test', {
@@ -526,6 +569,83 @@ interface ModelOutlineEvent extends IApiEvent<'ModelOutline', {
     convexHull: { x: number, y: number }[]
     convexHullCenter: { x: number, y: number }
     windowSize: { x: number, y: number }
+}> { }
+
+interface HotkeyTriggeredEvent extends IApiEvent<'HotkeyTriggered', {
+    onlyForAction?: HotkeyType
+    ignoreHotkeysTriggeredByAPI?: boolean
+}, {
+    hotkeyID: string
+    hotkeyName: string
+    hotkeyAction: HotkeyType
+    hotkeyFile: string
+    hotkeyTriggeredByAPI: boolean
+    modelID: string
+    modelName: string
+    isLive2DItem: boolean
+}> { }
+
+interface ModelAnimationEvent extends IApiEvent<'ModelAnimation', {
+    ignoreLive2DItems?: boolean
+    ignoreIdleAnimations?: boolean
+}, {
+    animationEventType: 'Start' | 'End' | 'Custom'
+    animationEventTime: number
+    animationEventData: string
+    animationName: string
+    animationLength: number
+    isIdleAnimation: boolean
+    modelID: string
+    modelName: string
+    isLive2DItem: boolean
+}> { }
+
+interface ItemEvent extends IApiEvent<'Item', {
+    itemInstanceIDs?: string[]
+    itemFileNames?: string[]
+}, {
+    itemEventType: 'Added' | 'Removed' | 'DroppedPinned' | 'DroppedUnpinned' | 'Clicked' | 'Locked' | 'Unlocked'
+    itemInstanceID: string
+    itemFileName: string
+    itemPosition: {
+        x: number
+        y: number
+    }
+}> { }
+
+interface ModelClickedEvent extends IApiEvent<'ModelClicked', {
+    onlyClicksOnModel: boolean
+}, {
+    modelLoaded: boolean
+    loadedModelID: string
+    loadedModelName: string
+    modelWasClicked: boolean
+    mouseButtonID: 1 | 2 | 3
+    clickPosition: {
+        x: number
+        y: number
+    }
+    windowSize: {
+        x: number
+        y: number
+    }
+    clickedArtMeshCount: number
+    artMeshHits: {
+        artMeshOrder: number
+        isMasked: boolean
+        hitInfo: {
+            modelID: string
+            artMeshID: string
+            angle: number
+            size: number
+            vertexID1: number
+            vertexID2: number
+            vertexID3: number
+            vertexWeight1: number
+            vertexWeight2: number
+            vertexWeight3: number
+        }
+    }[]
 }> { }
 
 export interface IApiClientOptions {
@@ -625,6 +745,8 @@ export class ApiClient {
     readonly itemAnimationControl = this._createClientCall<ItemAnimationControlEndpoint>('ItemAnimationControl')
     readonly itemMove = this._createClientCall<ItemMoveEndpoint>('ItemMove')
     readonly artMeshSelection = this._createClientCall<ArtMeshSelectionEndpoint>('ArtMeshSelection', 30 * 60 * 1000)
+    readonly itemPin = this._createClientCall<ItemPinEndpoint>('ItemPin')
+    readonly permission = this._createClientCall<PermissionEndpoint>('Permission', 15 * 60 * 1000)
 
     events = Object.seal({
         test: this._createEventSubCalls<TestEvent>('Test'),
@@ -634,6 +756,10 @@ export class ApiClient {
         modelConfigChanged: this._createEventSubCalls<ModelConfigChangedEvent>('ModelConfigChanged'),
         modelMoved: this._createEventSubCalls<ModelMovedEvent>('ModelMoved'),
         modelOutline: this._createEventSubCalls<ModelOutlineEvent>('ModelOutline'),
+        hotkeyTriggered: this._createEventSubCalls<HotkeyTriggeredEvent>('HotkeyTriggered'),
+        modelAnimation: this._createEventSubCalls<ModelAnimationEvent>('ModelAnimation'),
+        item: this._createEventSubCalls<ItemEvent>('Item'),
+        modelClicked: this._createEventSubCalls<ModelClickedEvent>('ModelClicked'),
     })
 
     on(type: 'connect', handler: () => void): void

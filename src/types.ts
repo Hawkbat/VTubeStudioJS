@@ -15,6 +15,7 @@ export enum ErrorCode {
     RequestTypeMissingOrEmpty = 6,
     RequestTypeUnknown = 7,
     RequestRequiresAuthetication = 8,
+    RequestRequiresPermission = 9,
 
     // AuthenticationToken
     TokenRequestDenied = 50,
@@ -113,6 +114,9 @@ export enum ErrorCode {
     ItemOrderInvalid = 755,
     ItemOrderAlreadyTaken = 756,
     ItemLoadValuesInvalid = 757,
+    ItemCustomDataInvalid = 758,
+    ItemCustomDataCannotAskRightNow = 759,
+    ItemCustomDataLoadRequestRejectedByUser = 760,
 
     // ItemUnload
     CannotCurrentlyUnloadItem = 800,
@@ -129,6 +133,31 @@ export enum ErrorCode {
     ItemMoveRequestInvalidFadeMode = 901,
     ItemMoveRequestItemOrderTakenOrInvalid = 902,
     ItemMoveRequestCannotCurrentlyChangeOrder = 903,
+
+    // EventSubscription
+    EventSubscriptionRequestEventTypeUnknown = 950,
+
+    //ArtMeshSelection
+    ArtMeshSelectionRequestNoModelLoaded = 1000,
+    ArtMeshSelectionRequestOtherWindowsOpen = 1001,
+    ArtMeshSelectionRequestModelDoesNotHaveArtMesh = 1002,
+    ArtMeshSelectionRequestArtMeshIDListError = 1003,
+
+    //ItemPin
+    ItemPinRequestGivenItemNotLoaded = 1050,
+    ItemPinRequestInvalidAngleOrSizeType = 1051,
+    ItemPinRequestModelNotFound = 1052,
+    ItemPinRequestArtMeshNotFound = 1053,
+    ItemPinRequestPinPositionInvalid = 1054,
+
+    //Permission
+    PermissionRequestUnknownPermission = 1100,
+    PermissionRequestCannotRequestRightNow = 1101,
+    PermissionRequestFileProblem = 1102,
+
+    //Event
+    Event_TestEvent_TestMessageTooLong = 100000,
+    Event_ModelLoadedEvent_ModelIDInvalid = 100050,
 }
 
 export enum HotkeyType {
@@ -151,6 +180,8 @@ export enum HotkeyType {
     ExecuteItemAction = 15,
     ArtMeshColorPreset = 16,
     ToggleTracker = 17,
+    ToggleTwitchFeature = 18,
+    LoadEffectPreset = 19,
 }
 
 export enum RestrictedRawKey {
@@ -270,3 +301,5 @@ export interface ILive2DParameter extends BaseParameter { }
 export interface IVTSParameter extends BaseParameter {
     addedBy: string
 }
+
+export type PermissionType = 'LoadCustomImagesAsItems'
