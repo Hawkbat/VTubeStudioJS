@@ -33,7 +33,7 @@
   "homepage": "https://github.com/Hawkbat/VTubeStudioJS#readme",
   "devDependencies": {
     "esbuild": "0.20.1",
-    "typedoc": "^0.23.10",
+    "typedoc": "^0.25.8",
     "typescript": "^5.3.3"
   }
 }
