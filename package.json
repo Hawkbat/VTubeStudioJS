@@ -5,9 +5,12 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "prepare": "npm run clean && npm run build && npm run build:docs",
+    "prepare": "npm run clean && npm run build && npm run bundle && npm run build:docs",
     "build": "tsc -b ./",
     "clean": "tsc -b ./ --clean",
+    "bundle": "npm run bundle:esm && npm run bundle:iife",
+    "bundle:esm": "npx esbuild src/index.ts --bundle --minify --sourcemap --format=esm --outfile=lib/esm/vtubestudio.min.js",
+    "bundle:iife": "npx esbuild src/index.ts --bundle --minify --sourcemap --format=iife --global-name=VTubeStudio --outfile=lib/iife/vtubestudio.min.js",
     "build:docs": "npx typedoc src/index.ts",
     "publish-patch": "npm version patch && git push && npm publish",
     "publish-minor": "npm version minor && git push && npm publish",
@@ -29,6 +32,7 @@
   },
   "homepage": "https://github.com/Hawkbat/VTubeStudioJS#readme",
   "devDependencies": {
+    "esbuild": "0.20.1",
     "typedoc": "^0.23.10",
     "typescript": "^4.7.4"
   }

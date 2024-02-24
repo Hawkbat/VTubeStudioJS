@@ -27,12 +27,19 @@ This package has no runtime dependencies. To avoid node_modules bloat, use `npm 
 This library is platform-agnostic, allowing it to be used for both Node projects and for browsers via tools like webpack. Use it by importing and instantiating an ApiClient:
 
 ```javascript
-// ES Modules
+// ES Modules (NodeJS or browser with bundler)
 import { ApiClient } from "vtubestudio";
 
-// CommonJS/Require
+// CommonJS/Require (NodeJS)
 const vts = require("vtubestudio");
 const ApiClient = vts.ApiClient;
+
+// ES Modules (CDN)
+import { ApiClient } from "https://unpkg.com/vtubestudio/lib/esm/vtubestudio.min.js?module";
+
+// Global Variable (CDN)
+// <script src="https://unpkg.com/vtubestudio/lib/iife/vtubestudio.min.js">
+const ApiClient = VTubeStudio.ApiClient;
 
 function setAuthToken(authenticationToken) {
   // store the authentication token somewhere

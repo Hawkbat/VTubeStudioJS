@@ -9,6 +9,7 @@
         "composite": true,
         "strict": true,
         "moduleResolution": "node",
+        "esModuleInterop": true,
         "rootDir": "src",
         "baseUrl": ".",
         "lib": [
@@ -24,7 +25,8 @@
         "noUncheckedIndexedAccess": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "importsNotUsedAsValues": "error",
+        "isolatedModules": true,
+        "verbatimModuleSyntax": true,
         "removeComments": true,
         "forceConsistentCasingInFileNames": true,
     },
