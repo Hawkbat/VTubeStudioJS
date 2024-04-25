@@ -1,5 +1,5 @@
 import { EndpointCall, IEventHandler, IClientCallConfig, makeRequestMsg, IEndpointHandler, msgIsError, msgIsResponse, IApiEndpoint, IApiEvent, AnyEndpointHandler, AnyEventHandler, VTubeStudioError, msgIsEvent, EventSubscribeCall } from './api'
-import { IVTSParameter, ILive2DParameter, HotkeyType, RestrictedRawKey, ItemType, ErrorCode, PermissionType } from './types'
+import { IVTSParameter, ILive2DParameter, HotkeyType, RestrictedRawKey, ItemType, ErrorCode, PermissionType, PostProcessingEffectID, AnyPostProcessingConfigEntry, PostProcessingEffectConfigID } from './types'
 import { generateID, wait } from './utils'
 import { validate } from './validation'
 import { getWebSocketImpl, IWebSocketLike, WebSocketReadyState } from './ws'
@@ -491,6 +491,59 @@ interface ItemPinEndpoint extends IApiEndpoint<'ItemPin', {
     itemFileName: string
 }> { }
 
+interface PostProcessingListEndpoint extends IApiEndpoint<'PostProcessingList', {
+    fillPostProcessingPresetsArray?: boolean
+    fillPostProcessingEffectsArray?: boolean
+    effectIDFilter?: PostProcessingEffectID[]
+}, {
+    postProcessingSupported: boolean
+    postProcessingActive: boolean
+    canSendPostProcessingUpdateRequestRightNow: boolean
+    restrictedEffectsAllowed: boolean
+    presetIsActive: boolean
+    activePreset: string
+    presetCount: number
+    activeEffectCount: number
+    effectCountBeforeFilter: number
+    configCountBeforeFilter: number
+    effectCountAfterFilter: number
+    configCountAfterFilter: number
+    postProcessingEffects: {
+        internalID: string
+        enumID: PostProcessingEffectID
+        explanation: string
+        effectIsActive: boolean
+        effectIsRestricted: boolean
+        configEntries: AnyPostProcessingConfigEntry[]
+    }[]
+    postProcessingPresets: string[]
+}> { }
+
+interface PostProcessingUpdateEndpoint extends IApiEndpoint<'PostProcessingUpdate', {
+    postProcessingOn?: boolean
+    postProcessingFadeTime?: number
+    usingRestrictedEffects?: boolean
+    randomizeAll?: boolean
+    randomizeAllChaosLevel?: number
+} & ({
+    setPostProcessingPreset: true
+    presetToSet: string
+} | {
+    setPostProcessingValues: true
+    setAllOtherValuesToDefault: boolean
+    postProcessingValues: {
+        configID: PostProcessingEffectConfigID
+        configValue: string
+    }[]
+} | {
+
+}), {
+    postProcessingActive: boolean
+    presetIsActive: boolean
+    activePreset: string
+    activeEffectCount: number
+}> { }
+
 interface PermissionEndpoint extends IApiEndpoint<'Permission', {
     requestedPermission?: PermissionType
 }, {
@@ -648,6 +701,21 @@ interface ModelClickedEvent extends IApiEvent<'ModelClicked', {
     }[]
 }> { }
 
+interface PostProcessingEvent extends IApiEvent<'PostProcessing', {
+
+}, {
+    currentOnState: boolean
+    currentPreset: string
+}> { }
+
+interface Live2DCubismEditorConnectedEvent extends IApiEvent<'Live2DCubismEditorConnected', {
+
+}, {
+    tryingToConnect: boolean
+    connected: boolean
+    shouldSendParameters: boolean
+}> { }
+
 export interface IApiClientOptions {
     /** A callback that will be invoked when an authentication token is needed to authenticate with VTube Studio. Return null from this function if no token is available yet. */
     authTokenGetter: () => string | null | Promise<string | null>
@@ -746,6 +814,8 @@ export class ApiClient {
     readonly itemMove = this._createClientCall<ItemMoveEndpoint>('ItemMove')
     readonly artMeshSelection = this._createClientCall<ArtMeshSelectionEndpoint>('ArtMeshSelection', 30 * 60 * 1000)
     readonly itemPin = this._createClientCall<ItemPinEndpoint>('ItemPin')
+    readonly postProcessingList = this._createClientCall<PostProcessingListEndpoint>('PostProcessingList')
+    readonly postProcessingUpdate = this._createClientCall<PostProcessingUpdateEndpoint>('PostProcessingUpdate')
     readonly permission = this._createClientCall<PermissionEndpoint>('Permission', 15 * 60 * 1000)
 
     events = Object.seal({
@@ -760,6 +830,8 @@ export class ApiClient {
         modelAnimation: this._createEventSubCalls<ModelAnimationEvent>('ModelAnimation'),
         item: this._createEventSubCalls<ItemEvent>('Item'),
         modelClicked: this._createEventSubCalls<ModelClickedEvent>('ModelClicked'),
+        postProcessing: this._createEventSubCalls<PostProcessingEvent>('PostProcessing'),
+        live2DCubismEditorConnected: this._createEventSubCalls<Live2DCubismEditorConnectedEvent>('Live2DCubismEditorConnected'),
     })
 
     on(type: 'connect', handler: () => void): void
