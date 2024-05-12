@@ -314,37 +314,36 @@ export interface IVTSParameter extends BaseParameter {
     addedBy: string
 }
 
-export enum PostProcessingEffectID {
-    ColorGrading = 'ColorGrading',
-    WeatherEffects = 'WeatherEffects',
-    Bloom = 'Bloom',
-    Backlight = 'Backlight',
-    CustomParticles = 'CustomParticles',
-    BackgroundShift = 'BackgroundShift',
-    SimpleOverlay = 'SimpleOverlay',
-    Vignette = 'Vignette',
-    ChromaticAberration = 'ChromaticAberration',
-    OldFilm = 'OldFilm',
-    Lowfps = 'Lowfps',
-    Datamosh = 'Datamosh',
-    LineScanner = 'LineScanner',
-    ParticleShower = 'ParticleShower',
-    AnalogGlitch = 'AnalogGlitch',
-    DigitalGlitch = 'DigitalGlitch',
-    Letterbox = 'Letterbox',
-    FoggyWindow = 'FoggyWindow',
-    Speedlines = 'Speedlines',
-    Pixelation = 'Pixelation',
-    LensDistortion = 'LensDistortion',
-    WaveDistortion = 'WaveDistortion',
-    BlurEffects = 'BlurEffects',
-    Grain = 'Grain',
-    Vhs = 'Vhs',
-    Outline = 'Outline',
-    Posterize = 'Posterize',
-    Ascii = 'Ascii',
-    ModelGlitch = 'ModelGlitch',
-}
+export type PostProcessingEffectID =
+    | 'ColorGrading'
+    | 'WeatherEffects'
+    | 'Bloom'
+    | 'Backlight'
+    | 'CustomParticles'
+    | 'BackgroundShift'
+    | 'SimpleOverlay'
+    | 'Vignette'
+    | 'ChromaticAberration'
+    | 'OldFilm'
+    | 'Lowfps'
+    | 'Datamosh'
+    | 'LineScanner'
+    | 'ParticleShower'
+    | 'AnalogGlitch'
+    | 'DigitalGlitch'
+    | 'Letterbox'
+    | 'FoggyWindow'
+    | 'Speedlines'
+    | 'Pixelation'
+    | 'LensDistortion'
+    | 'WaveDistortion'
+    | 'BlurEffects'
+    | 'Grain'
+    | 'Vhs'
+    | 'Outline'
+    | 'Posterize'
+    | 'Ascii'
+    | 'ModelGlitch'
 
 export type PostProcessingEffectConfigType = 'Float' | 'Int' | 'Bool' | 'String' | 'Color' | 'SceneItem'
 

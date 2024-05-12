@@ -49,14 +49,14 @@ export interface IApiEvent<Type extends string, Config extends object, EventData
 /** @internal */
 export type EndpointCall<T extends IApiEndpoint<any, any, any>> = T extends IApiEndpoint<infer _, infer Request, infer Response>
     ? (
-        {} extends Request
+        Request extends { [key: string]: never }
         ? (
-            {} extends Response
+            Response extends { [key: string]: never }
             ? (data?: undefined, config?: IClientCallConfig) => Promise<void>
             : (data?: undefined, config?: IClientCallConfig) => Promise<Response>
         )
         : (
-            {} extends Response
+            Response extends { [key: string]: never }
             ? (data: Request, config?: IClientCallConfig) => Promise<void>
             : (data: Request, config?: IClientCallConfig) => Promise<Response>
         )
@@ -66,14 +66,14 @@ export type EndpointCall<T extends IApiEndpoint<any, any, any>> = T extends IApi
 /** @internal */
 export type EventSubscribeCall<T extends IApiEvent<any, any, any>> = T extends IApiEvent<infer _, infer Config, infer EventData>
     ? (
-        {} extends Config
+        Config extends { [key: string]: never }
         ? (
-            {} extends EventData
+            EventData extends { [key: string]: never } 
             ? (callback: (data?: undefined) => void, config?: Config) => Promise<boolean>
             : (callback: (data: EventData) => void, config?: Config) => Promise<boolean>
         )
         : (
-            {} extends EventData
+            EventData extends { [key: string]: never }
             ? (callback: (data?: undefined) => void, config: Config) => Promise<boolean>
             : (callback: (data: EventData) => void, config: Config) => Promise<boolean>
         )

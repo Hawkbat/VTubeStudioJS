@@ -521,23 +521,19 @@ interface PostProcessingListEndpoint extends IApiEndpoint<'PostProcessingList', 
 
 interface PostProcessingUpdateEndpoint extends IApiEndpoint<'PostProcessingUpdate', {
     postProcessingOn?: boolean
+    setPostProcessingPreset?: boolean
+    setPostProcessingValues?: boolean
+    presetToSet?: string
     postProcessingFadeTime?: number
+    setAllOtherValuesToDefault?: boolean
     usingRestrictedEffects?: boolean
     randomizeAll?: boolean
     randomizeAllChaosLevel?: number
-} & ({
-    setPostProcessingPreset: true
-    presetToSet: string
-} | {
-    setPostProcessingValues: true
-    setAllOtherValuesToDefault: boolean
-    postProcessingValues: {
+    postProcessingValues?: {
         configID: PostProcessingEffectConfigID
         configValue: string
     }[]
-} | {
-
-}), {
+}, {
     postProcessingActive: boolean
     presetIsActive: boolean
     activePreset: string
