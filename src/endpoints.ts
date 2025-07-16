@@ -466,14 +466,11 @@ interface ArtMeshSelectionEndpoint extends IApiEndpoint<'ArtMeshSelection', {
 
 interface ItemPinEndpoint extends IApiEndpoint<'ItemPin', {
     itemInstanceID: string
-    pin: false
-} | {
-    itemInstanceID: string
-    pin: true
-    angleRelativeTo: 'RelativeToWorld' | 'RelativeToCurrentItemRotation' | 'RelativeToModel' | 'RelativeToPinPosition'
-    sizeRelativeTo: 'RelativeToWorld' | 'RelativeToCurrentItemSize'
-    vertexPinType: 'Provided' | 'Center' | 'Random'
-    pinInfo: {
+    pin: boolean
+    angleRelativeTo?: 'RelativeToWorld' | 'RelativeToCurrentItemRotation' | 'RelativeToModel' | 'RelativeToPinPosition'
+    sizeRelativeTo?: 'RelativeToWorld' | 'RelativeToCurrentItemSize'
+    vertexPinType?: 'Provided' | 'Center' | 'Random'
+    pinInfo?: {
         modelID?: string
         artMeshID?: string
         angle: number
