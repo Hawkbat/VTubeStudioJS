@@ -453,6 +453,25 @@ interface ItemMoveEndpoint extends IApiEndpoint<'ItemMove', {
     }[]
 }> { }
 
+interface ItemSortEndpoint extends IApiEndpoint<'ItemSort', {
+    itemInstanceID: string
+    frontOn?: boolean
+    backOn?: boolean
+    setSplitPoint?: 'Unchanged' | 'UseArtMeshID'
+    setFrontOrder?: 'Unchanged' | 'UseArtMeshID' | 'UseSpecialID'
+    setBackOrder?: 'Unchanged' | 'UseArtMeshID' | 'UseSpecialID'
+    splitAt?: string
+    withinModelOrderFront?: 'FullyInFront' | 'FullyInBack' | string
+    withinModelOrderBack?: 'FullyInBack' | string
+}, {
+    itemInstanceID: string
+    modelLoaded: boolean
+    modelID: string
+    modelName: string
+    loadedModelHadRequestedFrontLayer: boolean
+    loadedModelHadRequestedBackLayer: boolean
+}> { }
+
 interface ArtMeshSelectionEndpoint extends IApiEndpoint<'ArtMeshSelection', {
     textOverride?: string | null
     helpOverride?: string | null
@@ -805,6 +824,7 @@ export class ApiClient {
     readonly itemUnload = this._createClientCall<ItemUnloadEndpoint>('ItemUnload')
     readonly itemAnimationControl = this._createClientCall<ItemAnimationControlEndpoint>('ItemAnimationControl')
     readonly itemMove = this._createClientCall<ItemMoveEndpoint>('ItemMove')
+    readonly itemSort = this._createClientCall<ItemSortEndpoint>('ItemSort')
     readonly artMeshSelection = this._createClientCall<ArtMeshSelectionEndpoint>('ArtMeshSelection', 30 * 60 * 1000)
     readonly itemPin = this._createClientCall<ItemPinEndpoint>('ItemPin')
     readonly postProcessingList = this._createClientCall<PostProcessingListEndpoint>('PostProcessingList')
