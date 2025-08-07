@@ -160,6 +160,7 @@ interface ExpressionStateEndpoint extends IApiEndpoint<'ExpressionState', {
 
 interface ExpressionActivationRequest extends IApiEndpoint<'ExpressionActivation', {
     expressionFile: string
+    fadeTime?: number
     active: boolean
 }, {
 

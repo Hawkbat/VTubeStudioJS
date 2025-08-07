@@ -167,6 +167,14 @@ export enum ErrorCode {
     PostProcessingUpdateRequestValueListContainsDuplicates = 1205,
     PostProcessingUpdateRequestTriedToLoadRestrictedEffect = 1206,
 
+    //ItemSort
+    ItemSortRequestInstanceIDNotFound = 1250,
+    ItemSortRequestInvalidValueSetType = 1251,
+    ItemSortRequestInvalidFrontOrder = 1252,
+    ItemSortRequestInvalidBackOrder = 1253,
+    ItemSortRequestInvalidSplitPoint = 1254,
+    ItemSortRequestItemConfigWindowOpen = 1255,
+
     //Event
     Event_TestEvent_TestMessageTooLong = 100000,
     Event_ModelLoadedEvent_ModelIDInvalid = 100050,
@@ -194,6 +202,8 @@ export enum HotkeyType {
     ToggleTracker = 17,
     ToggleTwitchFeature = 18,
     LoadEffectPreset = 19,
+    ToggleLive2DEditorAPI = 20,
+    WebItemAction = 21,
 }
 
 export enum RestrictedRawKey {
