@@ -178,6 +178,11 @@ export enum ErrorCode {
     //Event
     Event_TestEvent_TestMessageTooLong = 100000,
     Event_ModelLoadedEvent_ModelIDInvalid = 100050,
+    Event_HotkeyTriggeredEvent_HotkeyActionInvalid = 100100,
+    Event_ArtMeshTrackingEvent_TrackingPointsInvalid = 100150,
+    Event_ArtMeshTrackingEvent_FrequencyInvalid = 100151,
+    Event_ArtMeshOutlineEvent_ArtMeshesInvalid = 100200,
+    Event_ArtMeshOutlineEvent_FrequencyInvalid = 100201,
 }
 
 export enum HotkeyType {
@@ -204,6 +209,7 @@ export enum HotkeyType {
     LoadEffectPreset = 19,
     ToggleLive2DEditorAPI = 20,
     WebItemAction = 21,
+    ToggleModelSound = 22,
 }
 
 export enum RestrictedRawKey {

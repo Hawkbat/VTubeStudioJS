@@ -174,6 +174,49 @@ interface ArtMeshListEndpoint extends IApiEndpoint<'ArtMeshList', {
     numberOfArtMeshTags: number
     artMeshNames: string[]
     artMeshTags: string[]
+    numberOfArtMeshGroups: number
+    artMeshGroups: {
+        groupID: string
+        groupName: string
+        numberOfArtMeshesInGroup: number
+        artMeshNames: string[]
+    }[]
+}> { }
+
+interface ArtMeshAtPositionEndpoint extends IApiEndpoint<'ArtMeshAtPosition', {
+    x: number
+    y: number
+    visualize?: number
+}, {
+    modelLoaded: boolean
+    loadedModelID: string
+    loadedModelName: string
+    modelWasHit: boolean
+    checkedPosition: {
+        x: number
+        y: number
+    }
+    windowSize: {
+        x: number
+        y: number
+    }
+    artMeshHitCount: number
+    artMeshHits: {
+        artMeshOrder: number
+        isMasked: boolean
+        hitInfo: {
+            modelID: string
+            artMeshID: string
+            angle: number
+            size: number
+            vertexID1: number
+            vertexID2: number
+            vertexID3: number
+            vertexWeight1: number
+            vertexWeight2: number
+            vertexWeight3: number
+        }
+    }[]
 }> { }
 
 interface ColorTintEndpoint extends IApiEndpoint<'ColorTint', {
@@ -192,6 +235,7 @@ interface ColorTintEndpoint extends IApiEndpoint<'ColorTint', {
         nameContains?: string[]
         tagExact?: string[]
         tagContains?: string[]
+        artMeshGroupIDExact?: string[]
     }
 }, {
     matchedArtMeshes: number
@@ -377,7 +421,7 @@ interface ItemListEndpoint extends IApiEndpoint<'ItemList', {
     availableItemFiles: {
         fileName: string
         type: ItemType
-        loadedCount: boolean
+        loadedCount: number
     }[]
 }> { }
 
@@ -686,7 +730,7 @@ interface ModelClickedEvent extends IApiEvent<'ModelClicked', {
     loadedModelID: string
     loadedModelName: string
     modelWasClicked: boolean
-    mouseButtonID: 1 | 2 | 3
+    mouseButtonID: 0 | 1 | 2
     clickPosition: {
         x: number
         y: number
@@ -727,6 +771,73 @@ interface Live2DCubismEditorConnectedEvent extends IApiEvent<'Live2DCubismEditor
     tryingToConnect: boolean
     connected: boolean
     shouldSendParameters: boolean
+}> { }
+
+interface ArtMeshTrackingEvent extends IApiEvent<'ArtMeshTracking', {
+    frequency: number
+    trackingPoints: {
+        trackingPointID: string
+        artMeshCoords: {
+            modelID: string
+            artMeshID: string
+            vertexID1: number
+            vertexID2: number
+            vertexID3: number
+            vertexWeight1: number
+            vertexWeight2: number
+            vertexWeight3: number
+            angle: number
+            size: number
+        }
+        visualize: boolean
+    }[]
+}, {
+    modelLoaded: boolean
+    modelID: string
+    windowSize: {
+        x: number
+        y: number
+    }
+    subscribedPointsCount: number
+    foundPointsCount: number
+    eventCounter: number
+    trackingPoints: {
+        trackingPointID: string
+        artMeshVisible: boolean
+        position: {
+            x: number
+            y: number
+        }
+        rotation: number
+        size: number
+    }[]
+}> { }
+
+interface ArtMeshOutlineEvent extends IApiEvent<'ArtMeshOutline', {
+    frequency: number
+    artMeshes: {
+        modelID: string
+        artMeshID: string
+    }[]
+}, {
+    modelLoaded: boolean
+    modelID: string
+    windowSize: {
+        x: number
+        y: number
+    }
+    subscribedArtMeshCount: number
+    foundArtMeshCount: number
+    eventCounter: number
+    artMeshOutlines: {
+        artMeshID: string
+        artMeshVisible: boolean
+        outlineCount: number
+        outlineArea: number
+        outlinePoints: {
+            points: number[]
+        }[]
+    }[]
 }> { }
 
 export interface IApiClientOptions {
@@ -808,6 +919,7 @@ export class ApiClient {
     readonly expressionState = this._createClientCall<ExpressionStateEndpoint>('ExpressionState')
     readonly expressionActivation = this._createClientCall<ExpressionActivationRequest>('ExpressionActivation')
     readonly artMeshList = this._createClientCall<ArtMeshListEndpoint>('ArtMeshList')
+    readonly artMeshAtPosition = this._createClientCall<ArtMeshAtPositionEndpoint>('ArtMeshAtPosition')
     readonly colorTint = this._createClientCall<ColorTintEndpoint>('ColorTint')
     readonly sceneColorOverlayInfo = this._createClientCall<SceneColorOverlayInfoEndpoint>('SceneColorOverlayInfo')
     readonly faceFound = this._createClientCall<FaceFoundEndpoint>('FaceFound')
@@ -846,6 +958,8 @@ export class ApiClient {
         modelClicked: this._createEventSubCalls<ModelClickedEvent>('ModelClicked'),
         postProcessing: this._createEventSubCalls<PostProcessingEvent>('PostProcessing'),
         live2DCubismEditorConnected: this._createEventSubCalls<Live2DCubismEditorConnectedEvent>('Live2DCubismEditorConnected'),
+        artMeshTracking: this._createEventSubCalls<ArtMeshTrackingEvent>('ArtMeshTracking'),
+        artMeshOutline: this._createEventSubCalls<ArtMeshOutlineEvent>('ArtMeshOutline'),
     })
 
     on(type: 'connect', handler: () => void): void
